@@ -13,3 +13,7 @@
 
 
 // TODO:  在此处引用程序需要的其他头文件
+#include "HeadersD3DFX11.h"
+#include "HeadersSTD.h"
+#include "HeadersWIN32.h"
+#include "PredeclsZETA.h"

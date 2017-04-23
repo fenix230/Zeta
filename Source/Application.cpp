@@ -36,8 +36,6 @@ namespace zeta
 
 		while (WM_QUIT != msg.message)
 		{
-			// 如果窗口是激活的，用 PeekMessage()以便我们可以用空闲时间渲染场景
-			// 不然, 用 GetMessage() 减少 CPU 占用率
 			if (main_wnd_ && main_wnd_->Active())
 			{
 				gotMsg = (::PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE) != 0);

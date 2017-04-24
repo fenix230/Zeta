@@ -90,18 +90,31 @@ void LoadAssimpStaticMesh(std::string file_path, float scale = 1, bool inverse_z
 	aiSetImportPropertyInteger(props, AI_CONFIG_PP_SBP_REMOVE, 0);
 	aiSetImportPropertyInteger(props, AI_CONFIG_GLOB_MEASURE_TIME, 1);
 
-	unsigned int ppsteps = aiProcess_JoinIdenticalVertices // join identical vertices/ optimize indexing
-		| aiProcess_ValidateDataStructure // perform a full validation of the loader's output
-		| aiProcess_RemoveRedundantMaterials // remove redundant materials
-		| aiProcess_FindInstances; // search for instanced meshes and remove them by references to one master
+	unsigned int ppsteps = aiProcess_CalcTangentSpace | // calculate tangents and bitangents if possible
+		aiProcess_JoinIdenticalVertices | // join identical vertices/ optimize indexing
+		aiProcess_ValidateDataStructure | // perform a full validation of the loader's output
+		aiProcess_ImproveCacheLocality | // improve the cache locality of the output vertices
+		aiProcess_RemoveRedundantMaterials | // remove redundant materials
+		aiProcess_FindDegenerates | // remove degenerated polygons from the import
+		aiProcess_FindInvalidData | // detect invalid model data, such as invalid normal vectors
+		aiProcess_GenUVCoords | // convert spherical, cylindrical, box and planar mapping to proper UVs
+		aiProcess_TransformUVCoords | // preprocess UV transformations (scaling, translation ...)
+		aiProcess_FindInstances | // search for instanced meshes and remove them by references to one master
+		aiProcess_LimitBoneWeights | // limit bone weights to 4 per vertex
+		aiProcess_OptimizeMeshes | // join small meshes, if possible;
+		aiProcess_SplitByBoneCount | // split meshes with too many bones. Necessary for our (limited) hardware skinning shader
+		0;
 
 	aiScene const * scene = aiImportFileExWithProperties(file_path.c_str(),
-		ppsteps // configurable pp steps
-		| aiProcess_GenSmoothNormals // generate smooth normal vectors if not existing
-		| aiProcess_Triangulate // triangulate polygons with more than 3 edges
-		//| aiProcess_ConvertToLeftHanded // convert everything to D3D left handed space
-		| aiProcess_FixInfacingNormals, // find normals facing inwards and inverts them
-		nullptr, props);
+		ppsteps | /* configurable pp steps */
+		aiProcess_GenSmoothNormals | // generate smooth normal vectors if not existing
+		aiProcess_SplitLargeMeshes | // split large, unrenderable meshes into submeshes
+		aiProcess_Triangulate | // triangulate polygons with more than 3 edges
+		aiProcess_ConvertToLeftHanded | // convert everything to D3D left handed space
+		aiProcess_SortByPType | // make 'clean' meshes which consist of a single typ of primitives
+		0,
+		NULL,
+		props);
 
 	if (!scene)
 	{
@@ -199,10 +212,6 @@ void LoadAssimpStaticMesh(std::string file_path, float scale = 1, bool inverse_z
 			}
 		}
 
-		if (mi == 0) {
-			std::for_each(norm_data.begin(), norm_data.end(), [](Vector3f& norm) { norm = -1 * norm; });
-		}
-
 		StaticMeshRenderablePtr r = std::make_shared<StaticMeshRenderable>();
 		r->CreateVertexBuffer(num_vert, pos_data.data(), norm_data.data(), tc_data.data());
 		r->CreateIndexBuffer(indice_data.size(), indice_data.data());
@@ -223,7 +232,7 @@ int main()
 		app.Create("Test", width, height);
 
 		CameraPtr cam = std::make_shared<Camera>();
-		Vector3f eye(-2, 2, -2), at(0, 0, 0), up(0, 1, 0);
+		Vector3f eye(12, 12, 12), at(0, 0, 0), up(0, 1, 0);
 		cam->LookAt(eye, at, up);
 		cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
 		Renderer::Instance().SetCamera(cam);

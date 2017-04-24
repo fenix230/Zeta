@@ -99,7 +99,7 @@ void LoadAssimpStaticMesh(std::string file_path, float scale = 1, bool inverse_z
 		ppsteps // configurable pp steps
 		| aiProcess_GenSmoothNormals // generate smooth normal vectors if not existing
 		| aiProcess_Triangulate // triangulate polygons with more than 3 edges
-		| aiProcess_ConvertToLeftHanded // convert everything to D3D left handed space
+		//| aiProcess_ConvertToLeftHanded // convert everything to D3D left handed space
 		| aiProcess_FixInfacingNormals, // find normals facing inwards and inverts them
 		nullptr, props);
 
@@ -117,9 +117,9 @@ void LoadAssimpStaticMesh(std::string file_path, float scale = 1, bool inverse_z
 		aiMesh const * mesh = scene->mMeshes[mi];
 
 		std::string tex_path;
-		Vector3f ka;
-		Vector3f kd;
-		Vector3f ks;
+		Vector3f ka(0.2f, 0.2f, 0.2f);
+		Vector3f kd(0.5f, 0.5f, 0.5f);
+		Vector3f ks(0.7f, 0.7f, 0.7f);
 		std::vector<Vector3f> pos_data;
 		std::vector<Vector3f> norm_data;
 		std::vector<Vector2f> tc_data;
@@ -138,17 +138,18 @@ void LoadAssimpStaticMesh(std::string file_path, float scale = 1, bool inverse_z
 			tex_path = pp2.string();
 		}
 
-		if (AI_SUCCESS != aiGetMaterialColor(mtl, "Ka", 0, 0, (aiColor4D*)&ka))
+		aiColor4D c4;
+		if (AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_AMBIENT, &c4))
 		{
-			ka = Vector3f(0.2f, 0.2f, 0.2f);
+			ka = Vector3f(c4.r, c4.g, c4.b);
 		}
-		if (AI_SUCCESS != aiGetMaterialColor(mtl, "Kd", 0, 0, (aiColor4D*)&kd))
+		if (AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_DIFFUSE, &c4))
 		{
-			kd = Vector3f(0.5f, 0.5f, 0.5f);
+			kd = Vector3f(c4.r, c4.g, c4.b);
 		}
-		if (AI_SUCCESS != aiGetMaterialColor(mtl, "Ks", 0, 0, (aiColor4D*)&ks))
+		if (AI_SUCCESS == aiGetMaterialColor(mtl, AI_MATKEY_COLOR_SPECULAR, &c4))
 		{
-			ks = Vector3f(0.7f, 0.7f, 0.7f);
+			ks = Vector3f(c4.r, c4.g, c4.b);
 		}
 
 		for (unsigned int fi = 0; fi < mesh->mNumFaces; ++fi)
@@ -198,6 +199,10 @@ void LoadAssimpStaticMesh(std::string file_path, float scale = 1, bool inverse_z
 			}
 		}
 
+		if (mi == 0) {
+			std::for_each(norm_data.begin(), norm_data.end(), [](Vector3f& norm) { norm = -1 * norm; });
+		}
+
 		StaticMeshRenderablePtr r = std::make_shared<StaticMeshRenderable>();
 		r->CreateVertexBuffer(num_vert, pos_data.data(), norm_data.data(), tc_data.data());
 		r->CreateIndexBuffer(indice_data.size(), indice_data.data());
@@ -218,7 +223,7 @@ int main()
 		app.Create("Test", width, height);
 
 		CameraPtr cam = std::make_shared<Camera>();
-		Vector3f eye(-14.5f, 18, -3), at(-13.6f, 17.55f, -2.8f), up(0, 1, 0);
+		Vector3f eye(-2, 2, -2), at(0, 0, 0), up(0, 1, 0);
 		cam->LookAt(eye, at, up);
 		cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
 		Renderer::Instance().SetCamera(cam);
@@ -227,22 +232,12 @@ int main()
 		al->color_ = Vector3f(0.1f, 0.1f, 0.1f);
 		Renderer::Instance().SetAmbientLight(al);
 
-		/*DirectionLightPtr dl = std::make_shared<DirectionLight>();
+		DirectionLightPtr dl = std::make_shared<DirectionLight>();
 		dl->color_ = Vector3f(0.85f, 0.85f, 0.85f);
 		dl->dir_ = Vector3f(cam->eye_pos_ - cam->look_at_);
-		re.AddDirectionLight(dl);*/
+		Renderer::Instance().AddDirectionLight(dl);
 
-		SpotLightPtr sl = std::make_shared<SpotLight>();
-		sl->pos_ = Vector3f(0, 12, -4.8f);
-		sl->dir_ = Vector3f(0, 0, 1);
-		sl->color_ = Vector3f(6.0f, 5.88f, 4.38f);
-		sl->falloff_ = Vector3f(1, 0.1f, 0);
-		sl->range_ = 100;
-		sl->inner_ang_ = XM_PI / 4;
-		sl->outter_ang_ = XM_PI / 6;
-		Renderer::Instance().AddSpotLight(sl);
-
-		LoadAssimpStaticMesh("Model/Sponza/sponza.obj");
+		LoadAssimpStaticMesh("Model/testObj/testObj.obj");
 
 		app.Run();
 	}

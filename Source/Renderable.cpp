@@ -80,7 +80,6 @@ namespace zeta
 		ks_ = ks;
 	}
 
-
 	ID3D11InputLayout* StaticMeshRenderable::D3DInputLayout(ID3DX11EffectPass* pass)
 	{
 		for (auto i = d3d_input_layouts_.begin(); i != d3d_input_layouts_.end(); i++)
@@ -147,8 +146,7 @@ namespace zeta
 		}
 
 		auto var_g_albedo_clr = effect->GetVariableByName("g_albedo_clr")->AsVector();
-		Vector3f albedo_clr(0.58f, 0.58f, 0.58f);
-		var_g_albedo_clr->SetFloatVector((float*)&albedo_clr);
+		var_g_albedo_clr->SetFloatVector((float*)&kd_);
 
 		auto var_g_metalness_clr = effect->GetVariableByName("g_metalness_clr")->AsVector();
 		Vector2f metalness_clr(0.02f, 0);

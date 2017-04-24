@@ -25,7 +25,6 @@ namespace zeta
 
 		void SetAmbientLight(AmbientLightPtr al);
 		void AddDirectionLight(DirectionLightPtr dl);
-		void AddSpotLight(SpotLightPtr sl);
 
 		void Frame();
 
@@ -75,7 +74,6 @@ namespace zeta
 
 		AmbientLightPtr ambient_light_;
 		std::vector<DirectionLightPtr> dir_lights_;
-		std::vector<SpotLightPtr> spot_lights_;
 	};
 
 }

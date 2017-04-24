@@ -25,7 +25,4 @@ namespace zeta
 
 	class DirectionLight;
 	typedef std::shared_ptr<DirectionLight> DirectionLightPtr;
-
-	class SpotLight;
-	typedef std::shared_ptr<SpotLight> SpotLightPtr;
 }

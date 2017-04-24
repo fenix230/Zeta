@@ -286,11 +286,6 @@ namespace zeta
 		dir_lights_.push_back(dl);
 	}
 
-	void Renderer::AddSpotLight(SpotLightPtr sl)
-	{
-		spot_lights_.push_back(sl);
-	}
-
 	void Renderer::Frame()
 	{
 		ID3DX11EffectTechnique* tech = d3d_effect_->GetTechniqueByName("DeferredRendering");
@@ -344,19 +339,6 @@ namespace zeta
 		pass = tech->GetPassByName("DirectionLighting");
 
 		for (auto i : dir_lights_)
-		{
-			i->Bind(d3d_effect_.get(), cam_.get());
-
-			quad_->Render(d3d_effect_.get(), pass);
-		}
-
-		//Spot lighting pass for each
-		pass = tech->GetPassByName("SpotLighting");
-
-		auto var_g_depth_tex = d3d_effect_->GetVariableByName("g_depth_tex")->AsShaderResource();
-		var_g_depth_tex->SetResource(linear_depth_fb_->RetriveRTShaderResourceView(0));
-
-		for (auto i : spot_lights_)
 		{
 			i->Bind(d3d_effect_.get(), cam_.get());
 

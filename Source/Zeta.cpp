@@ -232,7 +232,7 @@ int main()
 		dl->dir_ = Vector3f(cam->eye_pos_ - cam->look_at_);
 		re.AddDirectionLight(dl);*/
 
-			SpotLightPtr sl = std::make_shared<SpotLight>();
+		SpotLightPtr sl = std::make_shared<SpotLight>();
 		sl->pos_ = Vector3f(0, 12, -4.8f);
 		sl->dir_ = Vector3f(0, 0, 1);
 		sl->color_ = Vector3f(6.0f, 5.88f, 4.38f);

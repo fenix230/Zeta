@@ -128,6 +128,11 @@ namespace zeta
 
 	void Renderer::Resize(int width, int height)
 	{
+		if (!wnd_)
+		{
+			return;
+		}
+
 		width_ = width;
 		height_ = height;
 

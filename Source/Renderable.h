@@ -29,7 +29,6 @@ namespace zeta
 
 		void Destory();
 
-	private:
 		ID3D11InputLayout* D3DInputLayout(ID3DX11EffectPass* pass);
 
 	private:
@@ -64,13 +63,30 @@ namespace zeta
 
 		void Destory();
 
-	private:
+		void EnsureVertexBuffer();
+
 		ID3D11InputLayout* D3DInputLayout(ID3DX11EffectPass* pass);
 
-	private:
+	protected:
 		ID3D11BufferPtr d3d_vertex_buffer_;
 
 		std::vector<std::pair<ID3DX11EffectPass*, ID3D11InputLayoutPtr>> d3d_input_layouts_;
+	};
+
+
+	class SkyBoxRenderable : public QuadRenderable
+	{
+	public:
+		SkyBoxRenderable();
+		virtual ~SkyBoxRenderable();
+
+		void CreateCubeMap(std::string file_path);
+
+		virtual void Render(ID3DX11Effect* effect, ID3DX11EffectPass* pass) override;
+
+	private:
+		ID3D11ResourcePtr d3d_tex_;
+		ID3D11ShaderResourceViewPtr d3d_srv_;
 	};
 
 }

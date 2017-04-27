@@ -3,6 +3,7 @@ set SOURCE_DIR=%~dp0..\Source
 
 xcopy %SOURCE_DIR%\Model\*.* %OUT_DIR%Model\ /s /y
 xcopy %SOURCE_DIR%\Shader\*.* %OUT_DIR%Shader\ /s /y
+xcopy %SOURCE_DIR%\Texture\*.* %OUT_DIR%Texture\ /s /y
 
 xcopy %DEPENDENCY_DIR%\Assimp\lib\%PLATFORM%\%CONFIGURATION%\assimp-vc140-mt.dll %OUT_DIR% /s /y
 

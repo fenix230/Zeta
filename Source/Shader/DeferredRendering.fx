@@ -12,10 +12,14 @@ float4x4	g_model_mat;
 float4x4	g_view_mat;
 float4x4	g_proj_mat;
 float4x4	g_inv_proj_mat;
+float4x4	g_inv_mvp_mat;
 
 Texture2D	g_buffer_tex;
 Texture2D	g_buffer_1_tex;
+Texture2D	g_shading_tex;
 Texture2D	g_depth_tex;
+
+TextureCube	g_skybox_tex;
 
 float3		g_light_pos_es;
 float3		g_light_dir_es;
@@ -25,12 +29,11 @@ float2		g_spot_light_cos_cone;
 
 Texture2D	g_pp_tex;
 
-float4		g_near_q_far;
 
 #define MAX_SHININESS 8192.0f
 
 
-SamplerState point_sampler
+SamplerState PointSampler
 {
 	Filter = MIN_MAG_MIP_POINT;
 	AddressU = Wrap;
@@ -38,7 +41,7 @@ SamplerState point_sampler
 };
 
 
-SamplerState linear_sampler
+SamplerState LinearSampler
 {
 	Filter = MIN_MAG_LINEAR_MIP_POINT;
 	AddressU = Wrap;
@@ -46,7 +49,7 @@ SamplerState linear_sampler
 };
 
 
-SamplerState aniso_sampler
+SamplerState AnisoSampler
 {
 	Filter = ANISOTROPIC;
 	AddressU = Wrap;
@@ -54,7 +57,16 @@ SamplerState aniso_sampler
 };
 
 
-DepthStencilState depth_enalbed
+SamplerState SkyBoxSampler
+{
+	Filter = MIN_MAG_LINEAR_MIP_POINT;
+	AddressU = Clamp;
+	AddressV = Clamp;
+	AddressW = Clamp;
+};
+
+
+DepthStencilState DepthEnalbedDSS
 {
 	DepthEnable = true;
 	DepthWriteMask = ALL;
@@ -62,7 +74,23 @@ DepthStencilState depth_enalbed
 };
 
 
-DepthStencilState lighting_dss
+DepthStencilState CopyDepthDSS
+{
+	DepthEnable = true;
+	DepthWriteMask = ALL;
+	DepthFunc = ALWAYS;
+};
+
+
+DepthStencilState SkyBoxDSS
+{
+	DepthEnable = true;
+	DepthWriteMask = ALL;
+	DepthFunc = EQUAL;
+};
+
+
+DepthStencilState LightingDSS
 {
 	DepthEnable = false;
 	DepthWriteMask = ZERO;
@@ -77,28 +105,28 @@ DepthStencilState lighting_dss
 };
 
 
-RasterizerState back_solid_rs
+RasterizerState BackSolidRS
 {
 	FillMode = Solid;
 	CullMode = BACK;
 };
 
 
-RasterizerState front_solid_rs
+RasterizerState FrontSolidRS
 {
 	FillMode = Solid;
 	CullMode = FRONT;
 };
 
 
-RasterizerState double_solid_rs
+RasterizerState DoubleSolidRS
 {
 	FillMode = Solid;
 	CullMode = NONE;
 };
 
 
-BlendState lighting_bs
+BlendState LightingBS
 {
 	BlendEnable[0] = TRUE;
 	SrcBlend = ONE;
@@ -111,12 +139,11 @@ BlendState lighting_bs
 };
 
 
-BlendState no_bs
+BlendState DisabledBS
 {
 	AlphaToCoverageEnable = FALSE;
 	BlendEnable[0] = FALSE;
 };
-
 
 
 float4 StoreGBufferRT0(float3 normal, float glossiness)
@@ -270,19 +297,19 @@ GBUFFER_PSO GBufferPS(GBUFFER_VSO ipt)
 	float3 albedo = g_albedo_clr.rgb;
 	if (g_albedo_map_enabled)
 	{
-		albedo *= g_albedo_tex.Sample(aniso_sampler, ipt.tc).rgb;
+		albedo *= g_albedo_tex.Sample(AnisoSampler, ipt.tc).rgb;
 	}
 
 	float metalness = g_metalness_clr.r;
 	if (g_metalness_clr.y > 0.5f)
 	{
-		metalness *= g_metalness_tex.Sample(aniso_sampler, ipt.tc).r;
+		metalness *= g_metalness_tex.Sample(AnisoSampler, ipt.tc).r;
 	}
 
 	float glossiness = g_glossiness_clr.r;
 	if (g_glossiness_clr.y > 0.5f)
 	{
-		glossiness *= g_glossiness_tex.Sample(aniso_sampler, ipt.tc).r;
+		glossiness *= g_glossiness_tex.Sample(AnisoSampler, ipt.tc).r;
 	}
 
 	GBUFFER_PSO opt;
@@ -326,7 +353,7 @@ float4 LightingTestPS(LIGHTING_VSO ipt) : SV_Target
 	float2 tc = ipt.tc;
 	float3 view_dir = ipt.view_dir;
 
-	float4 mrt_1 = g_buffer_1_tex.Sample(point_sampler, tc);
+	float4 mrt_1 = g_buffer_1_tex.Sample(PointSampler, tc);
 
 	float3 c_diff = GetDiffuse(mrt_1);
 
@@ -341,8 +368,8 @@ float4 AmbientLightingPS(LIGHTING_VSO ipt) : SV_Target
 	float2 tc = ipt.tc;
 	float3 view_dir = ipt.view_dir;
 
-	float4 mrt_0 = g_buffer_tex.Sample(point_sampler, tc);
-	float4 mrt_1 = g_buffer_1_tex.Sample(point_sampler, tc);
+	float4 mrt_0 = g_buffer_tex.Sample(PointSampler, tc);
+	float4 mrt_1 = g_buffer_1_tex.Sample(PointSampler, tc);
 	view_dir = normalize(view_dir);
 	float3 normal = GetNormal(mrt_0);
 	float glossiness = GetGlossiness(mrt_0);
@@ -364,14 +391,14 @@ float4 DirectionLightingPS(LIGHTING_VSO ipt) : SV_Target
 
 	float3 shading = 0;
 
-	float4 mrt_0 = g_buffer_tex.Sample(point_sampler, tc);
+	float4 mrt_0 = g_buffer_tex.Sample(PointSampler, tc);
 	float3 normal = GetNormal(mrt_0);
 
 	float3 dir = g_light_dir_es.xyz;
 	float n_dot_l = dot(normal, dir);
 	if (n_dot_l > 0)
 	{
-		float4 mrt_1 = g_buffer_1_tex.Sample(point_sampler, tc);
+		float4 mrt_1 = g_buffer_1_tex.Sample(PointSampler, tc);
 
 		view_dir = normalize(view_dir);
 
@@ -459,10 +486,10 @@ float4 SpotLightingPS(LIGHTING_VSO ipt) : SV_Target
 
 	float4 shading = float4(0, 0, 0, 1);
 
-	float4 mrt_0 = g_buffer_tex.Sample(point_sampler, tc);
-	float4 mrt_1 = g_buffer_1_tex.Sample(point_sampler, tc);
+	float4 mrt_0 = g_buffer_tex.Sample(PointSampler, tc);
+	float4 mrt_1 = g_buffer_1_tex.Sample(PointSampler, tc);
 	view_dir = normalize(view_dir);
-	float3 pos_es = view_dir * (g_depth_tex.Sample(point_sampler, tc).x / view_dir.z);
+	float3 pos_es = view_dir * (g_depth_tex.Sample(PointSampler, tc).x / view_dir.z);
 	float3 normal = GetNormal(mrt_0);
 	float shininess = Glossiness2Shininess(GetGlossiness(mrt_0));
 	float3 c_diff = GetDiffuse(mrt_1);
@@ -473,6 +500,30 @@ float4 SpotLightingPS(LIGHTING_VSO ipt) : SV_Target
 		tc, tc_ddx, tc_ddy);
 
 	return shading;
+}
+
+
+struct SKYBOX_VSO
+{
+	float4 pos : SV_Position;
+	float3 tc : TEXCOORD0;
+};
+
+
+SKYBOX_VSO SkyBoxShadingVS(float4 pos : POSITION)
+{
+	SKYBOX_VSO opt;
+
+	opt.pos = pos;
+	opt.tc = mul(pos, g_inv_mvp_mat).xyz;
+
+	return opt;
+}
+
+
+float4 SkyBoxShadingPS(SKYBOX_VSO ipt) : SV_Target
+{
+	return g_skybox_tex.Sample(SkyBoxSampler, ipt.tc);
 }
 
 
@@ -494,22 +545,25 @@ PP_VSO PostProcessVS(float4 pos : POSITION)
 }
 
 
-float non_linear_depth_to_linear(float depth, float near_mul_q, float q)
+struct COPY_SHADING_DEPTH_PSO
 {
-	return near_mul_q / (q - depth);
+	float4 clr : SV_Target;
+	float depth : SV_Depth;
+};
+
+
+COPY_SHADING_DEPTH_PSO CopyShadingDepthPS(PP_VSO ipt)
+{
+	COPY_SHADING_DEPTH_PSO opt;
+
+	opt.clr = g_shading_tex.Sample(PointSampler, ipt.tc);
+	opt.depth = g_depth_tex.Sample(PointSampler, ipt.tc);
+
+	return opt;
 }
 
 
-float4 LinearDepthPS(PP_VSO ipt) : SV_Target
-{
-	float ld = non_linear_depth_to_linear(g_pp_tex.Sample(point_sampler, ipt.tc).r,
-		g_near_q_far.x, g_near_q_far.y);
-
-	return float4(ld, ld, ld, ld);
-}
-
-
-float3 linear_to_srgb(float3 rgb)
+float3 LinearToSRGB(float3 rgb)
 {
 	const float ALPHA = 0.055f;
 	return rgb < 0.0031308f ? 12.92f * rgb : (1 + ALPHA) * pow(rgb, 1 / 2.4f) - ALPHA;
@@ -518,9 +572,16 @@ float3 linear_to_srgb(float3 rgb)
 
 float4 SRGBCorrectionPS(PP_VSO ipt) : SV_Target
 {
-	float4 c = g_pp_tex.Sample(linear_sampler, ipt.tc);
-	float3 rgb = linear_to_srgb(max(c.rgb, 1e-6f));
+	float4 c = g_pp_tex.Sample(LinearSampler, ipt.tc);
+	float3 rgb = LinearToSRGB(max(c.rgb, 1e-6f));
 	return float4(rgb, 1);
+}
+
+
+float4 DisplayDepthPS(PP_VSO ipt) : SV_Target
+{
+	float d = g_pp_tex.Sample(PointSampler, ipt.tc).r;
+	return float4(d, d, d, 1);
 }
 
 
@@ -531,19 +592,9 @@ technique11 DeferredRendering
 		SetVertexShader(CompileShader(vs_5_0, GBufferVS()));
 		SetPixelShader(CompileShader(ps_5_0, GBufferPS()));
 
-		SetRasterizerState(back_solid_rs);
-		SetDepthStencilState(depth_enalbed, 0);
-		SetBlendState(no_bs, float4(0, 0, 0, 0), 0xFFFFFFFF);
-	}
-
-	pass LinearDepth
-	{
-		SetVertexShader(CompileShader(vs_5_0, PostProcessVS()));
-		SetPixelShader(CompileShader(ps_5_0, LinearDepthPS()));
-
-		SetRasterizerState(back_solid_rs);
-		SetDepthStencilState(depth_enalbed, 0);
-		SetBlendState(no_bs, float4(0, 0, 0, 0), 0xFFFFFFFF);
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(DepthEnalbedDSS, 0);
+		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
 	}
 
 	pass AmbientLighting
@@ -551,9 +602,9 @@ technique11 DeferredRendering
 		SetVertexShader(CompileShader(vs_5_0, LightingVS()));
 		SetPixelShader(CompileShader(ps_5_0, AmbientLightingPS()));
 
-		SetRasterizerState(back_solid_rs);
-		SetDepthStencilState(lighting_dss, 0);
-		SetBlendState(lighting_bs, float4(1, 1, 1, 1), 0xFFFFFFFF);
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(LightingDSS, 0);
+		SetBlendState(LightingBS, float4(1, 1, 1, 1), 0xFFFFFFFF);
 	}
 
 	pass DirectionLighting
@@ -561,9 +612,9 @@ technique11 DeferredRendering
 		SetVertexShader(CompileShader(vs_5_0, LightingVS()));
 		SetPixelShader(CompileShader(ps_5_0, DirectionLightingPS()));
 
-		SetRasterizerState(back_solid_rs);
-		SetDepthStencilState(lighting_dss, 0);
-		SetBlendState(lighting_bs, float4(1, 1, 1, 1), 0xFFFFFFFF);
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(LightingDSS, 0);
+		SetBlendState(LightingBS, float4(1, 1, 1, 1), 0xFFFFFFFF);
 	}
 
 	pass SpotLighting
@@ -571,9 +622,29 @@ technique11 DeferredRendering
 		SetVertexShader(CompileShader(vs_5_0, LightingVS()));
 		SetPixelShader(CompileShader(ps_5_0, SpotLightingPS()));
 
-		SetRasterizerState(back_solid_rs);
-		SetDepthStencilState(lighting_dss, 0);
-		SetBlendState(lighting_bs, float4(1, 1, 1, 1), 0xFFFFFFFF);
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(LightingDSS, 0);
+		SetBlendState(LightingBS, float4(1, 1, 1, 1), 0xFFFFFFFF);
+	}
+
+	pass SkyBoxShading
+	{
+		SetVertexShader(CompileShader(vs_5_0, SkyBoxShadingVS()));
+		SetPixelShader(CompileShader(ps_5_0, SkyBoxShadingPS()));
+
+		SetRasterizerState(DoubleSolidRS);
+		SetDepthStencilState(SkyBoxDSS, 0);
+		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
+	}
+
+	pass CopyShadingDepth
+	{
+		SetVertexShader(CompileShader(vs_5_0, PostProcessVS()));
+		SetPixelShader(CompileShader(ps_5_0, CopyShadingDepthPS()));
+
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(CopyDepthDSS, 0);
+		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
 	}
 
 	pass SRGBCorrection
@@ -581,8 +652,18 @@ technique11 DeferredRendering
 		SetVertexShader(CompileShader(vs_5_0, PostProcessVS()));
 		SetPixelShader(CompileShader(ps_5_0, SRGBCorrectionPS()));
 
-		SetRasterizerState(back_solid_rs);
-		SetDepthStencilState(depth_enalbed, 0);
-		SetBlendState(no_bs, float4(0, 0, 0, 0), 0xFFFFFFFF);
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(DepthEnalbedDSS, 0);
+		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
+	}
+
+	pass DisplayDepth
+	{
+		SetVertexShader(CompileShader(vs_5_0, PostProcessVS()));
+		SetPixelShader(CompileShader(ps_5_0, DisplayDepthPS()));
+
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(DepthEnalbedDSS, 0);
+		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
 	}
 }

@@ -17,9 +17,10 @@ namespace zeta
 
 		void Resize(int width, int height);
 
-		void LoadEffect(std::string file_path);
-
 		void SetCamera(CameraPtr cam);
+		CameraPtr GetCamera() const;
+
+		void SetSkyBox(SkyBoxRenderablePtr skybox);
 
 		void AddRenderable(RenderablePtr r);
 
@@ -27,6 +28,8 @@ namespace zeta
 		void AddDirectionLight(DirectionLightPtr dl);
 
 		void Frame();
+
+		ID3DX11Effect* LoadEffect(std::string file_path);
 
 		IDXGISwapChain1* DXGISwapChain();
 
@@ -61,15 +64,16 @@ namespace zeta
 		ID3D11DeviceContextPtr d3d_imm_ctx_;
 
 		FrameBufferPtr gbuffer_fb_;
-		FrameBufferPtr linear_depth_fb_;
 		FrameBufferPtr lighting_fb_;
+		FrameBufferPtr shading_fb_;
 		FrameBufferPtr srgb_fb_;
 
-		ID3DX11EffectPtr d3d_effect_;
+		ID3DX11EffectPtr dr_effect_;
 
-		QuadRenderablePtr quad_;
+		QuadRenderablePtr quad_; 
 
 		CameraPtr cam_;
+		SkyBoxRenderablePtr skybox_;
 		std::vector<RenderablePtr> rs_;
 
 		AmbientLightPtr ambient_light_;

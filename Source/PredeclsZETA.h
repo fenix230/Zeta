@@ -17,6 +17,9 @@ namespace zeta
 	class QuadRenderable;
 	typedef std::shared_ptr<QuadRenderable> QuadRenderablePtr;
 
+	class SkyBoxRenderable;
+	typedef std::shared_ptr<SkyBoxRenderable> SkyBoxRenderablePtr;
+
 	class FrameBuffer;
 	typedef std::shared_ptr<FrameBuffer> FrameBufferPtr;
 

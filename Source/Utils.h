@@ -127,12 +127,19 @@ namespace zeta
 			float m10, float m11, float m12, float m13,
 			float m20, float m21, float m22, float m23,
 			float m30, float m31, float m32, float m33);
+		Matrix(const XMMATRIX& rhs);
 		explicit Matrix(const float *arr);
 
 		Matrix& operator= (const XMMATRIX& m);
 
-		Matrix Inverse() const;
+		float& At(int x, int y);
+		float At(int x, int y) const;
 	};
+	inline Matrix operator* (const Matrix& v1, const Matrix& v2)
+	{
+		XMMATRIX vm = XMMatrixMultiply(v1, v2);
+		return vm;
+	}
 
 
 	Vector4f Transform(const Vector4f& v, const Matrix& mat);
@@ -147,6 +154,8 @@ namespace zeta
 
 	float Length(const Vector2f& v);
 	float Length(const Vector3f& v);
+
+	Matrix Inverse(const Matrix& mat);
 
 	std::wstring ToW(const std::string& str, const std::locale& loc = std::locale());
 	std::string ToA(const std::wstring& str, const std::locale& loc = std::locale());

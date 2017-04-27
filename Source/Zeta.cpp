@@ -232,10 +232,14 @@ int main()
 		app.Create("Test", width, height);
 
 		CameraPtr cam = std::make_shared<Camera>();
-		Vector3f eye(12, 12, 12), at(0, 0, 0), up(0, 1, 0);
+		Vector3f eye(2, 2, 2), at(0, 0, 0), up(0, 1, 0);
 		cam->LookAt(eye, at, up);
 		cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
 		Renderer::Instance().SetCamera(cam);
+
+		SkyBoxRenderablePtr skybox = std::make_shared<SkyBoxRenderable>();
+		skybox->CreateCubeMap("Texture/CubeMap/BlueSky.dds");
+		Renderer::Instance().SetSkyBox(skybox);
 
 		AmbientLightPtr al = std::make_shared<AmbientLight>();
 		al->color_ = Vector3f(0.1f, 0.1f, 0.1f);
@@ -252,7 +256,7 @@ int main()
 	}
 	catch (const std::exception& e)
 	{
-		e.what();
+		std::string se = e.what();
 	}
 
 	return 0;

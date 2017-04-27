@@ -16,7 +16,7 @@ namespace zeta
 		var_g_view_mat->SetMatrix((float*)&view_);
 		var_g_proj_mat->SetMatrix((float*)&proj_);
 
-		Matrix inv_proj = proj_.Inverse();
+		Matrix inv_proj = Inverse(proj_);
 		var_g_inv_proj_mat->SetMatrix((float*)&inv_proj);
 	}
 

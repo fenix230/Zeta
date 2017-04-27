@@ -97,6 +97,11 @@ namespace zeta
 		return Vector4f().XMV(XMVector4Normalize(v.XMV()));
 	}
 
+	Matrix Inverse(const Matrix& mat)
+	{
+		return XMMatrixInverse(nullptr, mat);
+	}
+
 	float Length(const Vector3f& v)
 	{
 		return ::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
@@ -175,14 +180,26 @@ namespace zeta
 
 	}
 
+	Matrix::Matrix(const XMMATRIX& rhs)
+	{
+		this->operator=(rhs);
+	}
+
 	Matrix& Matrix::operator=(const XMMATRIX& m)
 	{
 		*(XMMATRIX*)this = m; return *this;
 	}
 
-	Matrix Matrix::Inverse() const
+	float& Matrix::At(int x, int y)
 	{
-		return Matrix().operator=(XMMatrixInverse(nullptr, *this));
+		float* p = (float*)&r[x];
+		return *(p + y);
+	}
+
+	float Matrix::At(int x, int y) const
+	{
+		const float* p = (float*)&r[x];
+		return *(p + y);
 	}
 
 }

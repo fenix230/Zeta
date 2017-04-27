@@ -2,6 +2,7 @@
 #include "Renderable.h"
 #include "Renderer.h"
 #include "DDSTextureLoader.h"
+#include "Camera.h"
 
 
 namespace zeta
@@ -193,6 +194,34 @@ namespace zeta
 
 	void QuadRenderable::Render(ID3DX11Effect* effect, ID3DX11EffectPass* pass)
 	{
+		this->EnsureVertexBuffer();
+		
+		//Vertex buffer and index buffer
+		std::array<ID3D11Buffer*, 1> buffers = {
+			d3d_vertex_buffer_.get()
+		};
+
+		std::array<UINT, 1> strides = {
+			sizeof(Vector3f)
+		};
+
+		std::array<UINT, 1> offsets = {
+			0
+		};
+
+		Renderer::Instance().D3DContext()->IASetVertexBuffers(0, 1, buffers.data(), strides.data(), offsets.data());
+
+		Renderer::Instance().D3DContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+		Renderer::Instance().D3DContext()->IASetInputLayout(this->D3DInputLayout(pass));
+
+		pass->Apply(0, Renderer::Instance().D3DContext());
+
+		Renderer::Instance().D3DContext()->Draw(4, 0);
+	}
+
+	void QuadRenderable::EnsureVertexBuffer()
+	{
 		if (!d3d_vertex_buffer_)
 		{
 			Vector3f vs_inputs[] =
@@ -220,29 +249,6 @@ namespace zeta
 			THROW_FAILED(Renderer::Instance().D3DDevice()->CreateBuffer(&buffer_desc, &buffer_data, &d3d_buffer));
 			d3d_vertex_buffer_ = MakeCOMPtr(d3d_buffer);
 		}
-
-		//Vertex buffer and index buffer
-		std::array<ID3D11Buffer*, 1> buffers = {
-			d3d_vertex_buffer_.get()
-		};
-
-		std::array<UINT, 1> strides = {
-			sizeof(Vector3f)
-		};
-
-		std::array<UINT, 1> offsets = {
-			0
-		};
-
-		Renderer::Instance().D3DContext()->IASetVertexBuffers(0, 1, buffers.data(), strides.data(), offsets.data());
-
-		Renderer::Instance().D3DContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-		Renderer::Instance().D3DContext()->IASetInputLayout(this->D3DInputLayout(pass));
-
-		pass->Apply(0, Renderer::Instance().D3DContext());
-
-		Renderer::Instance().D3DContext()->Draw(4, 0);
 	}
 
 	void QuadRenderable::Destory()
@@ -277,5 +283,48 @@ namespace zeta
 		return d3d_input_layout;
 	}
 
+	SkyBoxRenderable::SkyBoxRenderable()
+	{
+
+	}
+	
+	SkyBoxRenderable::~SkyBoxRenderable()
+	{
+
+	}
+
+	void SkyBoxRenderable::CreateCubeMap(std::string file_path)
+	{
+		if (!file_path.empty())
+		{
+			std::wstring wfile_path = ToW(file_path);
+
+			ID3D11Resource* d3d_tex_res = nullptr;
+			ID3D11ShaderResourceView* d3d_tex_srv = nullptr;
+			if (SUCCEEDED(CreateDDSTextureFromFile(Renderer::Instance().D3DDevice(), wfile_path.c_str(), &d3d_tex_res, &d3d_tex_srv)))
+			{
+				d3d_tex_ = MakeCOMPtr(d3d_tex_res);
+				d3d_srv_ = MakeCOMPtr(d3d_tex_srv);
+			}
+		}
+	}
+
+	void SkyBoxRenderable::Render(ID3DX11Effect* effect, ID3DX11EffectPass* pass)
+	{
+		auto var_g_skybox_tex = effect->GetVariableByName("g_skybox_tex")->AsShaderResource();
+		var_g_skybox_tex->SetResource(d3d_srv_.get());
+
+		Matrix rot_view = Renderer::Instance().GetCamera()->view_;
+		rot_view.At(3, 0) = 0;
+		rot_view.At(3, 1) = 0;
+		rot_view.At(3, 2) = 0;
+		Matrix proj = Renderer::Instance().GetCamera()->proj_;
+		Matrix inv_mvp = Inverse(rot_view * proj);
+
+		auto var_g_inv_mvp_mat = effect->GetVariableByName("g_inv_mvp_mat")->AsMatrix();
+		var_g_inv_mvp_mat->SetMatrix((float*)&inv_mvp);
+
+		QuadRenderable::Render(effect, pass);
+	}
 
 }

@@ -563,28 +563,6 @@ COPY_SHADING_DEPTH_PSO CopyShadingDepthPS(PP_VSO ipt)
 }
 
 
-float3 LinearToSRGB(float3 rgb)
-{
-	const float ALPHA = 0.055f;
-	return rgb < 0.0031308f ? 12.92f * rgb : (1 + ALPHA) * pow(rgb, 1 / 2.4f) - ALPHA;
-}
-
-
-float4 SRGBCorrectionPS(PP_VSO ipt) : SV_Target
-{
-	float4 c = g_pp_tex.Sample(LinearSampler, ipt.tc);
-	float3 rgb = LinearToSRGB(max(c.rgb, 1e-6f));
-	return float4(rgb, 1);
-}
-
-
-float4 DisplayDepthPS(PP_VSO ipt) : SV_Target
-{
-	float d = g_pp_tex.Sample(PointSampler, ipt.tc).r;
-	return float4(d, d, d, 1);
-}
-
-
 technique11 DeferredRendering
 {
 	pass GBuffer
@@ -644,26 +622,6 @@ technique11 DeferredRendering
 
 		SetRasterizerState(BackSolidRS);
 		SetDepthStencilState(CopyDepthDSS, 0);
-		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
-	}
-
-	pass SRGBCorrection
-	{
-		SetVertexShader(CompileShader(vs_5_0, PostProcessVS()));
-		SetPixelShader(CompileShader(ps_5_0, SRGBCorrectionPS()));
-
-		SetRasterizerState(BackSolidRS);
-		SetDepthStencilState(DepthEnalbedDSS, 0);
-		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
-	}
-
-	pass DisplayDepth
-	{
-		SetVertexShader(CompileShader(vs_5_0, PostProcessVS()));
-		SetPixelShader(CompileShader(ps_5_0, DisplayDepthPS()));
-
-		SetRasterizerState(BackSolidRS);
-		SetDepthStencilState(DepthEnalbedDSS, 0);
 		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
 	}
 }

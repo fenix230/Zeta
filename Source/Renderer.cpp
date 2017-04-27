@@ -1,9 +1,10 @@
 #include "stdafx.h"
+#include "Light.h"
+#include "Camera.h"
 #include "Renderer.h"
 #include "FrameBuffer.h"
-#include "Camera.h"
 #include "Renderable.h"
-#include "Light.h"
+#include "ImageBasedProcess.h"
 
 
 namespace zeta
@@ -124,6 +125,8 @@ namespace zeta
 		this->Resize(width, height);
 
 		dr_effect_ = MakeCOMPtr(this->LoadEffect("Shader/DeferredRendering.fx"));
+		srgb_pp_ = std::make_shared<ImageBasedProcess>();
+		srgb_pp_->LoadFX("Shader/SRGBCorrection.fx", "SRGBCorrection", "SRGBCorrection");
 	}
 
 	void Renderer::Resize(int width, int height)
@@ -229,6 +232,7 @@ namespace zeta
 		skybox_.reset();
 
 		dr_effect_.reset();
+		srgb_pp_.reset();
 		d3d_imm_ctx_.reset();
 		d3d_device_.reset();
 
@@ -360,23 +364,18 @@ namespace zeta
 			skybox_->Render(dr_effect_.get(), pass);
 		}
 
-		//SRGBCorrection pass
+		//SRGBCorrection post process
 		srgb_fb_->Clear();
 		srgb_fb_->Bind();
 
-		pass = tech->GetPassByName("SRGBCorrection");
-		
-		auto var_g_pp_tex = dr_effect_->GetVariableByName("g_pp_tex")->AsShaderResource();
-		var_g_pp_tex->SetResource(shading_fb_->RetriveRTShaderResourceView(0));
-
-		/*pass = tech->GetPassByName("DisplayDepth");
-
-		auto var_g_pp_tex = dr_effect_->GetVariableByName("g_pp_tex")->AsShaderResource();
-		var_g_pp_tex->SetResource(shading_fb_->RetriveDSShaderResourceView());*/
-
-		quad_->Render(dr_effect_.get(), pass);
+		srgb_pp_->Apply(shading_fb_->RetriveRTShaderResourceView(0), srgb_fb_);
 
 		gi_swap_chain_1_->Present(0, 0);
+	}
+
+	QuadRenderablePtr Renderer::Quad()
+	{
+		return quad_;
 	}
 
 	IDXGISwapChain1* Renderer::DXGISwapChain()

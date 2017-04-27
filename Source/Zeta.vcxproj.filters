@@ -66,6 +66,9 @@
     <ClInclude Include="Application.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="ImageBasedProcess.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -101,9 +104,15 @@
     <ClCompile Include="Application.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="ImageBasedProcess.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\DeferredRendering.fx">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\SRGBCorrection.fx">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>

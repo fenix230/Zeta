@@ -28,4 +28,7 @@ namespace zeta
 
 	class DirectionLight;
 	typedef std::shared_ptr<DirectionLight> DirectionLightPtr;
+
+	class ImageBasedProcess;
+	typedef std::shared_ptr<ImageBasedProcess> ImageBasedProcessPtr;
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include "Utils.h"
 
 
 namespace zeta
@@ -28,6 +29,10 @@ namespace zeta
 		void AddDirectionLight(DirectionLightPtr dl);
 
 		void Frame();
+
+		void UpdateStat();
+
+		double FrameTime();
 
 		QuadRenderablePtr Quad();
 
@@ -71,7 +76,7 @@ namespace zeta
 		FrameBufferPtr srgb_fb_;
 
 		ID3DX11EffectPtr dr_effect_;
-		ImageBasedProcessPtr srgb_pp_;
+		OnePassPostProcessPtr srgb_pp_;
 
 		QuadRenderablePtr quad_; 
 
@@ -81,6 +86,9 @@ namespace zeta
 
 		AmbientLightPtr ambient_light_;
 		std::vector<DirectionLightPtr> dir_lights_;
+
+		Timer timer_;
+		double frame_time_;
 	};
 
 }

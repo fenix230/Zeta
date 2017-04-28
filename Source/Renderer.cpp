@@ -26,6 +26,7 @@ namespace zeta
 		wnd_ = nullptr;
 		width_ = 0;
 		height_ = 0;
+		frame_time_ = 0;
 
 		if (!DynamicFuncInit_)
 		{
@@ -125,7 +126,7 @@ namespace zeta
 		this->Resize(width, height);
 
 		dr_effect_ = MakeCOMPtr(this->LoadEffect("Shader/DeferredRendering.fx"));
-		srgb_pp_ = std::make_shared<ImageBasedProcess>();
+		srgb_pp_ = std::make_shared<OnePassPostProcess>();
 		srgb_pp_->LoadFX("Shader/SRGBCorrection.fx", "SRGBCorrection", "SRGBCorrection");
 	}
 
@@ -371,6 +372,19 @@ namespace zeta
 		srgb_pp_->Apply(shading_fb_->RetriveRTShaderResourceView(0), srgb_fb_);
 
 		gi_swap_chain_1_->Present(0, 0);
+
+		this->UpdateStat();
+	}
+
+	void Renderer::UpdateStat()
+	{
+		frame_time_ = timer_.Elapsed();
+		timer_.Restart();
+	}
+
+	double Renderer::FrameTime()
+	{
+		return frame_time_;
 	}
 
 	QuadRenderablePtr Renderer::Quad()

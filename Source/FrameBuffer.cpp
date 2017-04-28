@@ -9,6 +9,8 @@ namespace zeta
 	FrameBuffer::FrameBuffer()
 	{
 		rtv_fmt_ = DXGI_FORMAT_R8G8B8A8_UNORM;
+		width_ = 0;
+		height_ = 0;
 	}
 
 	FrameBuffer::FrameBuffer(DXGI_FORMAT rtv_fmt)
@@ -33,6 +35,9 @@ namespace zeta
 
 	void FrameBuffer::Create(uint32_t width, uint32_t height, size_t rtv_count, ID3D11Texture2D* sc_buffer, size_t sc_index)
 	{
+		width_ = width;
+		height_ = height;
+
 		//Render target view
 		rtvs_.resize(rtv_count);
 
@@ -98,6 +103,16 @@ namespace zeta
 		}
 
 		Renderer::Instance().D3DContext()->OMSetRenderTargets((UINT)d3d_rtvs.size(), d3d_rtvs.data(), d3d_dsv_.get());
+	}
+
+	uint32_t FrameBuffer::Width()
+	{
+		return width_;
+	}
+
+	uint32_t FrameBuffer::Height()
+	{
+		return height_;
 	}
 
 	ID3D11ShaderResourceView* FrameBuffer::RetriveRTShaderResourceView(size_t index)

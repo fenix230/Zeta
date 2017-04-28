@@ -82,6 +82,7 @@ namespace zeta
 		return v * -1.0f;\
 	}
 
+
 	struct Vector2f : public XMFLOAT2
 	{
 		Vector2f();
@@ -167,6 +168,27 @@ namespace zeta
 	{
 		return p ? std::shared_ptr<T>(p, std::mem_fn(&T::Release)) : std::shared_ptr<T>();
 	}
+
+
+	class Timer
+	{
+	public:
+		Timer();
+
+		void Restart();
+
+		double Elapsed() const;
+
+		double ElapsedMax() const;
+
+		double ElapsedMin() const;
+
+		double CurrentTime() const;
+
+	private:
+		double start_time_;
+	};
+
 }
 
 

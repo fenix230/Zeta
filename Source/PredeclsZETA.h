@@ -31,4 +31,7 @@ namespace zeta
 
 	class ImageBasedProcess;
 	typedef std::shared_ptr<ImageBasedProcess> ImageBasedProcessPtr;
+
+	class OnePassPostProcess;
+	typedef std::shared_ptr<OnePassPostProcess> OnePassPostProcessPtr;
 }

@@ -115,5 +115,8 @@
     <FxCompile Include="Shader\SRGBCorrection.fx">
       <Filter>Shader</Filter>
     </FxCompile>
+    <FxCompile Include="Shader\HDR.fx">
+      <Filter>Shader</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

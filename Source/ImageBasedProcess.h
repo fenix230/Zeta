@@ -8,7 +8,10 @@ namespace zeta
 	class ImageBasedProcess
 	{
 	public:
-		virtual void Apply(ID3D11ShaderResourceView* input_srv, FrameBufferPtr output_fb) = 0;
+		virtual void SetInput(ID3D11ShaderResourceView* input_srv) {}
+		virtual void SetOutput(FrameBufferPtr output_fb) {}
+		virtual FrameBufferPtr GetOutput() { return nullptr; }
+		virtual void Apply() {}
 	};
 
 
@@ -24,9 +27,15 @@ namespace zeta
 		virtual void Destory();
 		virtual void FX(ID3DX11EffectPtr effect, ID3DX11EffectTechnique* tech, ID3DX11EffectPass* pass);
 
-		virtual void Apply(ID3D11ShaderResourceView* input_srv, FrameBufferPtr output_fb) override;
+		virtual void SetInput(ID3D11ShaderResourceView* input_srv) override;
+		virtual void SetOutput(FrameBufferPtr output_fb) override;
+		virtual FrameBufferPtr GetOutput() override;
+		virtual void Apply() override;
 
 	protected:
+		ID3D11ShaderResourceView* input_;
+		FrameBufferPtr output_;
+
 		ID3DX11EffectPtr effect_;
 		ID3DX11EffectTechnique* tech_;
 		ID3DX11EffectPass* pass_;
@@ -40,7 +49,7 @@ namespace zeta
 		SumLumPostProcess();
 		virtual ~SumLumPostProcess();
 
-		virtual void Apply(ID3D11ShaderResourceView* input_srv, FrameBufferPtr output_fb) override;
+		virtual void Apply() override;
 
 	private:
 		void CalcSampleOffsets(uint32_t width, uint32_t height);
@@ -56,10 +65,42 @@ namespace zeta
 	{
 	public:
 		AdaptedLumPostProcess();
+		virtual ~AdaptedLumPostProcess();
+
+		virtual void Destory() override;
+
+		virtual void SetOutput(FrameBufferPtr output_fb) override {}
+		virtual void Apply() override;
 
 	private:
 		FrameBufferPtr adapted_texs_[2];
 		bool last_index_;
+	};
+
+
+	class ImageStatPostProcess
+		: public ImageBasedProcess
+	{
+	public:
+		ImageStatPostProcess();
+		virtual ~ImageStatPostProcess();
+
+		virtual void Destory();
+
+		void Create(uint32_t width, uint32_t height);
+
+		virtual void SetInput(ID3D11ShaderResourceView* input_srv) override;
+		virtual void SetOutput(FrameBufferPtr output_fb) {}
+		virtual FrameBufferPtr GetOutput() override;
+		virtual void Apply() override;
+
+	protected:
+		uint32_t width_;
+		uint32_t height_;
+		OnePassPostProcessPtr sum_lums_1st_;
+		std::vector<OnePassPostProcessPtr> sum_lums_;
+		AdaptedLumPostProcessPtr adapted_lum_;
+		std::vector<FrameBufferPtr> fbs_;
 	};
 
 }

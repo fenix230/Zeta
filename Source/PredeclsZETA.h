@@ -34,4 +34,7 @@ namespace zeta
 
 	class OnePassPostProcess;
 	typedef std::shared_ptr<OnePassPostProcess> OnePassPostProcessPtr;
+
+	class AdaptedLumPostProcess;
+	typedef std::shared_ptr<AdaptedLumPostProcess> AdaptedLumPostProcessPtr;
 }

@@ -9,7 +9,6 @@ SamplerState PointSampler
 };
 
 
-
 RasterizerState BackSolidRS
 {
 	FillMode = Solid;

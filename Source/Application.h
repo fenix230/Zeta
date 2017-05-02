@@ -12,7 +12,6 @@ namespace zeta
 		~Application();
 
 		void Create(const std::string& name, int width, int height);
-		void Destory();
 
 		void Run();
 

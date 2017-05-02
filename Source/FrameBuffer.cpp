@@ -20,7 +20,9 @@ namespace zeta
 
 	FrameBuffer::~FrameBuffer()
 	{
-		this->Destory();
+		rtvs_.clear();
+		d3d_dsv_tex_.reset();
+		d3d_dsv_.reset();
 	}
 
 	void FrameBuffer::Create(uint32_t width, uint32_t height, ID3D11Texture2D* sc_buffer)
@@ -71,13 +73,6 @@ namespace zeta
 
 		d3d_dsv_ = MakeCOMPtr(Renderer::Instance().D3DCreateDepthStencilView(d3d_dsv_tex_.get(),
 			DXGI_FORMAT_D24_UNORM_S8_UINT));
-	}
-
-	void FrameBuffer::Destory()
-	{
-		rtvs_.clear();
-		d3d_dsv_tex_.reset();
-		d3d_dsv_.reset();
 	}
 
 	void FrameBuffer::Clear(Vector4f* c)

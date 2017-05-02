@@ -7,7 +7,7 @@ Texture2D	g_last_lum_tex;
 float		g_frame_delta;
 
 
-SamplerState LinearClampSampler
+SamplerState LinearSampler
 {
 	Filter = MIN_MAG_LINEAR_MIP_POINT;
 	AddressU = Clamp;
@@ -74,8 +74,8 @@ float4 SumLum4x4LogPS(SUMLUM_VSO ipt) : SV_Target
 	float s = 0;
 	for (int i = 0; i < 2; ++i)
 	{
-		s += log(dot(g_tex.Sample(LinearClampSampler, tex[i].xy).rgb, RGB_TO_LUM) + 0.001f);
-		s += log(dot(g_tex.Sample(LinearClampSampler, tex[i].zw).rgb, RGB_TO_LUM) + 0.001f);
+		s += log(dot(g_tex.Sample(LinearSampler, tex[i].xy).rgb, RGB_TO_LUM) + 0.001f);
+		s += log(dot(g_tex.Sample(LinearSampler, tex[i].zw).rgb, RGB_TO_LUM) + 0.001f);
 	}
 
 	return float4(s / 4, 0, 0, 0);
@@ -89,8 +89,8 @@ float4 SumLum4x4IterativePS(SUMLUM_VSO ipt) : SV_Target
 	float s = 0;
 	for (int i = 0; i < 2; ++i)
 	{
-		s += g_tex.Sample(LinearClampSampler, tex[i].xy).r;
-		s += g_tex.Sample(LinearClampSampler, tex[i].zw).r;
+		s += g_tex.Sample(LinearSampler, tex[i].xy).r;
+		s += g_tex.Sample(LinearSampler, tex[i].zw).r;
 	}
 
 	return float4(s / 4, 0, 0, 0);

@@ -8,11 +8,13 @@ namespace zeta
 	class Renderable
 	{
 	public:
+		virtual ~Renderable() {}
 		virtual void Render(ID3DX11Effect* effect, ID3DX11EffectPass* pass) = 0;
 	};
 
 
-	class StaticMeshRenderable : public Renderable
+	class StaticMeshRenderable 
+		: public Renderable
 	{
 	public:
 		StaticMeshRenderable();
@@ -53,7 +55,8 @@ namespace zeta
 	};
 
 
-	class QuadRenderable : public Renderable
+	class QuadRenderable 
+		: public Renderable
 	{
 	public:
 		QuadRenderable();
@@ -74,7 +77,8 @@ namespace zeta
 	};
 
 
-	class SkyBoxRenderable : public QuadRenderable
+	class SkyBoxRenderable 
+		: public QuadRenderable
 	{
 	public:
 		SkyBoxRenderable();

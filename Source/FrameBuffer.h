@@ -18,8 +18,6 @@ namespace zeta
 
 		void Create(uint32_t width, uint32_t height, size_t rtv_count, ID3D11Texture2D* sc_buffer, size_t sc_index);
 
-		void Destory();
-
 		void Clear(Vector4f* c = nullptr);
 
 		void Bind();

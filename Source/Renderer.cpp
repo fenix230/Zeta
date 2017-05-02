@@ -65,7 +65,35 @@ namespace zeta
 
 	Renderer::~Renderer()
 	{
-		this->Destory();
+		rs_.clear();
+		cam_.reset();
+
+		if (gi_swap_chain_1_)
+		{
+			gi_swap_chain_1_->SetFullscreenState(false, nullptr);
+		}
+
+		gbuffer_fb_.reset();
+		lighting_fb_.reset();
+		shading_fb_.reset();
+		srgb_fb_.reset();
+
+		quad_.reset();
+		skybox_.reset();
+
+		dr_effect_.reset();
+		srgb_pp_.reset();
+		d3d_imm_ctx_.reset();
+		d3d_device_.reset();
+
+		gi_swap_chain_1_.reset();
+		gi_adapter_.reset();
+		gi_factory_1_.reset();
+		gi_factory_2_.reset();
+
+		::FreeLibrary(mod_d3dcompiler_);
+		::FreeLibrary(mod_d3d11_);
+		::FreeLibrary(mod_dxgi_);
 	}
 
 	Renderer& Renderer::Instance()
@@ -212,39 +240,6 @@ namespace zeta
 		viewport.TopLeftY = 0.0f;
 
 		d3d_imm_ctx_->RSSetViewports(1, &viewport);
-	}
-
-	void Renderer::Destory()
-	{
-		rs_.clear();
-		cam_.reset();
-
-		if (gi_swap_chain_1_)
-		{
-			gi_swap_chain_1_->SetFullscreenState(false, nullptr);
-		}
-
-		gbuffer_fb_.reset();
-		lighting_fb_.reset();
-		shading_fb_.reset();
-		srgb_fb_.reset();
-
-		quad_.reset();
-		skybox_.reset();
-
-		dr_effect_.reset();
-		srgb_pp_.reset();
-		d3d_imm_ctx_.reset();
-		d3d_device_.reset();
-
-		gi_swap_chain_1_.reset();
-		gi_adapter_.reset();
-		gi_factory_1_.reset();
-		gi_factory_2_.reset();
-
-		::FreeLibrary(mod_d3dcompiler_);
-		::FreeLibrary(mod_d3d11_);
-		::FreeLibrary(mod_dxgi_);
 	}
 
 	ID3DX11Effect* Renderer::LoadEffect(std::string file_path)

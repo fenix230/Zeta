@@ -15,11 +15,6 @@ namespace zeta
 
 	OnePassPostProcess::~OnePassPostProcess()
 	{
-		this->Destory();
-	}
-
-	void OnePassPostProcess::Destory()
-	{
 		effect_.reset();
 	}
 
@@ -125,12 +120,6 @@ namespace zeta
 
 	AdaptedLumPostProcess::~AdaptedLumPostProcess()
 	{
-		this->Destory();
-	}
-
-	void AdaptedLumPostProcess::Destory()
-	{
-		OnePassPostProcess::Destory();
 		adapted_texs_[0].reset();
 		adapted_texs_[1].reset();
 	}
@@ -165,11 +154,6 @@ namespace zeta
 	}
 
 	ImageStatPostProcess::~ImageStatPostProcess()
-	{
-		this->Destory();
-	}
-
-	void ImageStatPostProcess::Destory()
 	{
 		sum_lums_1st_.reset();
 		sum_lums_.clear();
@@ -221,6 +205,36 @@ namespace zeta
 		}
 
 		adapted_lum_->Apply();
+	}
+
+	LensEffectsPostProcess::LensEffectsPostProcess()
+	{
+
+	}
+
+	LensEffectsPostProcess::~LensEffectsPostProcess()
+	{
+
+	}
+
+	void LensEffectsPostProcess::SetInput(ID3D11ShaderResourceView* input_srv)
+	{
+
+	}
+
+	void LensEffectsPostProcess::SetOutput(FrameBufferPtr output_fb)
+	{
+
+	}
+
+	zeta::FrameBufferPtr LensEffectsPostProcess::GetOutput()
+	{
+		return nullptr;
+	}
+
+	void LensEffectsPostProcess::Apply()
+	{
+
 	}
 
 }

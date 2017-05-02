@@ -24,7 +24,6 @@ namespace zeta
 
 		void LoadFX(std::string fx_file, std::string tech_name, std::string pass_name);
 
-		virtual void Destory();
 		virtual void FX(ID3DX11EffectPtr effect, ID3DX11EffectTechnique* tech, ID3DX11EffectPass* pass);
 
 		virtual void SetInput(ID3D11ShaderResourceView* input_srv) override;
@@ -67,8 +66,6 @@ namespace zeta
 		AdaptedLumPostProcess();
 		virtual ~AdaptedLumPostProcess();
 
-		virtual void Destory() override;
-
 		virtual void SetOutput(FrameBufferPtr output_fb) override {}
 		virtual void Apply() override;
 
@@ -85,12 +82,9 @@ namespace zeta
 		ImageStatPostProcess();
 		virtual ~ImageStatPostProcess();
 
-		virtual void Destory();
-
 		void Create(uint32_t width, uint32_t height);
 
 		virtual void SetInput(ID3D11ShaderResourceView* input_srv) override;
-		virtual void SetOutput(FrameBufferPtr output_fb) {}
 		virtual FrameBufferPtr GetOutput() override;
 		virtual void Apply() override;
 
@@ -101,6 +95,26 @@ namespace zeta
 		std::vector<OnePassPostProcessPtr> sum_lums_;
 		AdaptedLumPostProcessPtr adapted_lum_;
 		std::vector<FrameBufferPtr> fbs_;
+	};
+
+
+	class LensEffectsPostProcess
+		: public ImageBasedProcess
+	{
+	public:
+		LensEffectsPostProcess();
+		virtual ~LensEffectsPostProcess();
+
+		virtual void SetInput(ID3D11ShaderResourceView* input_srv) override;
+		virtual void SetOutput(FrameBufferPtr output_fb) override;
+		virtual FrameBufferPtr GetOutput() override;
+		virtual void Apply() override;
+
+	private:
+		OnePassPostProcessPtr bright_pass_downsampler_;
+		std::array<OnePassPostProcessPtr, 2> downsamplers_;
+		std::array<OnePassPostProcessPtr, 3> blurs_;
+		OnePassPostProcessPtr glow_merger_;
 	};
 
 }

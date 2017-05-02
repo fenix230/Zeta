@@ -14,7 +14,6 @@ namespace zeta
 		static Renderer& Instance();
 
 		void Create(HWND wnd, int width, int height);
-		void Destory();
 
 		void Resize(int width, int height);
 

@@ -7,6 +7,14 @@ Texture2D	g_last_lum_tex;
 float		g_frame_delta;
 
 
+SamplerState PointSampler
+{
+	Filter = MIN_MAG_MIP_POINT;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+
 SamplerState LinearSampler
 {
 	Filter = MIN_MAG_LINEAR_MIP_POINT;
@@ -105,10 +113,45 @@ float CalcAdaptedLum(float adapted_lum, float current_lum)
 
 float4 AdaptedLumPS(SUMLUM_VSO ipt) : SV_Target
 {
-	float adapted_lum = g_last_lum_tex.Sample(last_lum_sampler, 0.5f.xx).r;
-	float current_lum = exp(g_tex.Sample(src_sampler, 0.5f.xx).r);
+	float adapted_lum = g_last_lum_tex.Sample(PointSampler, 0.5f.xx).r;
+	float current_lum = exp(g_tex.Sample(LinearSampler, 0.5f.xx).r);
 
 	return float4(CalcAdaptedLum(adapted_lum, current_lum), 0, 0, 0);
+}
+
+
+struct PP_VSO
+{
+	float4 pos : SV_Position;
+	float2 tc : TEXCOORD0;
+};
+
+
+PP_VSO PostProcessVS(float4 pos : POSITION)
+{
+	PP_VSO opt;
+
+	opt.pos = pos;
+	opt.tc = TexCoordFromPos(pos);
+
+	return opt;
+}
+
+
+float4 SqrBrightPS(PP_VSO ipt) : SV_Target
+{
+	float2 tc = ipt.tc;
+
+	float4 clr = g_tex.Sample(LinearSampler, tc);
+	return clamp(clr * (clr / 3), 0, 32);
+}
+
+
+float4 BilinearCopyPS(PP_VSO ipt) : SV_Target
+{
+	float2 tc = ipt.tc;
+
+	return g_tex.Sample(LinearSampler, tc);
 }
 
 
@@ -138,6 +181,26 @@ technique11 HDR
 	{
 		SetVertexShader(CompileShader(vs_5_0, SumLumVS()));
 		SetPixelShader(CompileShader(ps_5_0, AdaptedLumPS()));
+
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(DepthDisalbedDSS, 0);
+		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
+	}
+
+	pass SqrBright
+	{
+		SetVertexShader(CompileShader(vs_5_0, PostProcessVS()));
+		SetPixelShader(CompileShader(ps_5_0, SqrBrightPS()));
+
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(DepthDisalbedDSS, 0);
+		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
+	}
+
+	pass BilinearCopy
+	{
+		SetVertexShader(CompileShader(vs_5_0, PostProcessVS()));
+		SetPixelShader(CompileShader(ps_5_0, BilinearCopyPS()));
 
 		SetRasterizerState(BackSolidRS);
 		SetDepthStencilState(DepthDisalbedDSS, 0);

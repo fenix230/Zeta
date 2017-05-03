@@ -6,6 +6,14 @@ Texture2D	g_last_lum_tex;
 
 float		g_frame_delta;
 
+float2		g_tex_size;
+float		g_color_weight[8];
+float		g_tc_offset[8];
+
+Texture2D	g_glow_tex_0;
+Texture2D	g_glow_tex_1;
+Texture2D	g_glow_tex_2;
+
 
 SamplerState PointSampler
 {
@@ -155,6 +163,109 @@ float4 BilinearCopyPS(PP_VSO ipt) : SV_Target
 }
 
 
+struct BLUR_VSO
+{
+	float4 tc0 : TEXCOORD0;
+	float4 tc1 : TEXCOORD1;
+	float4 tc2 : TEXCOORD2;
+	float4 tc3 : TEXCOORD3;
+	float2 tc_ori : TEXCOORD4;
+	float4 pos : SV_Position;
+};
+
+
+BLUR_VSO BlurXVS(float4 pos : POSITION)
+{
+	BLUR_VSO opt;
+
+	opt.pos = pos;
+
+	float2 Tex0 = TexCoordFromPos(pos);
+	float4 tex[4];
+	for (int i = 0; i < 4; ++i)
+	{
+		tex[i] = Tex0.xyxy + float4(g_tc_offset[i * 2 + 0], 0, g_tc_offset[i * 2 + 1], 0);
+	}
+	opt.tc0 = tex[0];
+	opt.tc1 = tex[1];
+	opt.tc2 = tex[2];
+	opt.tc3 = tex[3];
+	opt.tc_ori = Tex0;
+}
+
+
+BLUR_VSO BlurYVS(float4 pos : POSITION)
+{
+	BLUR_VSO opt;
+
+	opt.pos = pos;
+
+	float2 Tex0 = TexCoordFromPos(pos);
+	float4 tex[4];
+	for (int i = 0; i < 4; ++i)
+	{
+		tex[i] = Tex0.xyxy + float4(0, g_tc_offset[i * 2 + 0], 0, g_tc_offset[i * 2 + 1]);
+	}
+	opt.tc0 = tex[0];
+	opt.tc1 = tex[1];
+	opt.tc2 = tex[2];
+	opt.tc3 = tex[3];
+	opt.tc_ori = Tex0;
+}
+
+
+float4 CalcBlur(float4 iTex0, float4 iTex1, float4 iTex2, float4 iTex3, float2 offset)
+{
+	float4 color = float4(0, 0, 0, 1);
+	float4 tex[4] = { iTex0, iTex1, iTex2, iTex3 };
+
+	for (int i = 0; i < 4; ++i)
+	{
+		tex[i] += offset.xyxy;
+		color.rgb += src_tex.Sample(src_sampler, tex[i].xy).rgb * color_weight[i * 2 + 0];
+		color.rgb += src_tex.Sample(src_sampler, tex[i].zw).rgb * color_weight[i * 2 + 1];
+	}
+
+	return color;
+}
+
+
+float4 BlurXPS(BLUR_VSO ipt) : SV_Target
+{
+	float4 iTex0 = ipt.tc0;
+	float4 iTex1 = ipt.tc1;
+	float4 iTex2 = ipt.tc2;
+	float4 iTex3 = ipt.tc3;
+	float2 iOriTex = ipt.tc_ori;
+
+	float2 offset = float2((floor(iOriTex.x * src_tex_size.x) + 0.5f) * src_tex_size.y - iOriTex.x, 0);
+	return CalcBlur(iTex0, iTex1, iTex2, iTex3, offset);
+}
+
+
+float4 BlurYPS(BLUR_VSO ipt) : SV_Target
+{
+	float4 iTex0 = ipt.tc0;
+	float4 iTex1 = ipt.tc1;
+	float4 iTex2 = ipt.tc2;
+	float4 iTex3 = ipt.tc3;
+	float2 iOriTex = ipt.tc_ori;
+
+	float2 offset = float2(0, (floor(iOriTex.y * src_tex_size.x) + 0.5f) * src_tex_size.y - iOriTex.y);
+	return CalcBlur(iTex0, iTex1, iTex2, iTex3, offset);
+}
+
+
+float4 GlowMergerPS(PP_VSO ipt) : SV_Target
+{
+	float4 clr0 = glow_tex_0.Sample(bilinear_sampler, ipt.tc);
+	float4 clr1 = glow_tex_1.Sample(bilinear_sampler, ipt.tc);
+	float4 clr2 = glow_tex_2.Sample(bilinear_sampler, ipt.tc);
+
+	return clr0 * 2.0f + clr1 * 1.15f + clr2 * 0.45f;
+}
+
+
 technique11 HDR
 {
 	pass SumLumLog
@@ -201,6 +312,36 @@ technique11 HDR
 	{
 		SetVertexShader(CompileShader(vs_5_0, PostProcessVS()));
 		SetPixelShader(CompileShader(ps_5_0, BilinearCopyPS()));
+
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(DepthDisalbedDSS, 0);
+		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
+	}
+
+	pass BlurX
+	{
+		SetVertexShader(CompileShader(vs_5_0, BlurXVS()));
+		SetPixelShader(CompileShader(ps_5_0, BlurXPS()));
+
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(DepthDisalbedDSS, 0);
+		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
+	}
+
+	pass BlurY
+	{
+		SetVertexShader(CompileShader(vs_5_0, BlurYVS()));
+		SetPixelShader(CompileShader(ps_5_0, BlurYPS()));
+
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(DepthDisalbedDSS, 0);
+		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
+	}
+
+	pass GlowMerger
+	{
+		SetVertexShader(CompileShader(vs_5_0, PostProcessVS()));
+		SetPixelShader(CompileShader(ps_5_0, GlowMergerPS()));
 
 		SetRasterizerState(BackSolidRS);
 		SetDepthStencilState(DepthDisalbedDSS, 0);

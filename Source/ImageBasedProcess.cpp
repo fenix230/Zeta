@@ -162,13 +162,10 @@ namespace zeta
 
 	void ImageStatPostProcess::Create(uint32_t width, uint32_t height)
 	{
-		width_ = width;
-		height_ = height;
-
 		fbs_.clear();
 
 		fbs_.push_back(std::make_shared<FrameBuffer>(DXGI_FORMAT_R32_FLOAT));
-		fbs_.back()->Create(width_, height_, 1);
+		fbs_.back()->Create(width, height, 1);
 		sum_lums_1st_->SetOutput(fbs_.back());
 
 		for (size_t i = 0; i < sum_lums_.size(); ++i)
@@ -176,7 +173,7 @@ namespace zeta
 			sum_lums_[i]->SetInput(fbs_.back()->RetriveRTShaderResourceView(0));
 
 			fbs_.push_back(std::make_shared<FrameBuffer>(DXGI_FORMAT_R32_FLOAT));
-			fbs_.back()->Create(width_, height_, 1);
+			fbs_.back()->Create(width, height, 1);
 			sum_lums_[i]->SetOutput(fbs_.back());
 		}
 		
@@ -227,7 +224,7 @@ namespace zeta
 
 	}
 
-	zeta::FrameBufferPtr LensEffectsPostProcess::GetOutput()
+	FrameBufferPtr LensEffectsPostProcess::GetOutput()
 	{
 		return nullptr;
 	}
@@ -235,6 +232,88 @@ namespace zeta
 	void LensEffectsPostProcess::Apply()
 	{
 
+	}
+
+	SeparableGaussianFilterPostProcess::SeparableGaussianFilterPostProcess(ID3DX11EffectPtr effect, bool x_dir)
+	{
+		ID3DX11EffectTechnique* tech = effect->GetTechniqueByName("HDR");
+		ID3DX11EffectPass* pass = tech->GetPassByName(x_dir ? "BlurX" : "BlurY");
+
+		this->FX(effect, tech, pass);
+		x_dir_ = x_dir;
+	}
+
+	SeparableGaussianFilterPostProcess::~SeparableGaussianFilterPostProcess()
+	{
+
+	}
+
+	void SeparableGaussianFilterPostProcess::KernelRadius(int radius)
+	{
+		kernel_radius_ = radius;
+	}
+
+	void SeparableGaussianFilterPostProcess::Multiplier(float multiplier)
+	{
+		multiplier_ = multiplier;
+	}
+
+	float SeparableGaussianFilterPostProcess::GaussianDistribution(float x, float y, float rho)
+	{
+		float g = 1.0f / sqrt(2.0f * XM_PI * rho * rho);
+		g *= exp(-(x * x + y * y) / (2 * rho * rho));
+		return g;
+	}
+
+	void SeparableGaussianFilterPostProcess::CalSampleOffsets(uint32_t tex_size, float deviation)
+	{
+		std::vector<float> color_weight(8, 0);
+		std::vector<float> tex_coord_offset(8, 0);
+
+		std::vector<float> tmp_weights(kernel_radius_ * 2, 0);
+		std::vector<float> tmp_offset(kernel_radius_ * 2, 0);
+
+		float const tu = 1.0f / tex_size;
+
+		float sum_weight = 0;
+		for (int i = 0; i < 2 * kernel_radius_; ++i)
+		{
+			float weight = this->GaussianDistribution(static_cast<float>(i - kernel_radius_), 0, kernel_radius_ / deviation);
+			tmp_weights[i] = weight;
+			sum_weight += weight;
+		}
+		for (int i = 0; i < 2 * kernel_radius_; ++i)
+		{
+			tmp_weights[i] /= sum_weight;
+		}
+
+		// Fill the offsets
+		for (int i = 0; i < kernel_radius_; ++i)
+		{
+			tmp_offset[i] = static_cast<float>(i - kernel_radius_);
+			tmp_offset[i + kernel_radius_] = static_cast<float>(i);
+		}
+
+		// Bilinear filtering taps
+		// Ordering is left to right.
+		for (int i = 0; i < kernel_radius_; ++i)
+		{
+			float const scale = tmp_weights[i * 2] + tmp_weights[i * 2 + 1];
+			float const frac = tmp_weights[i * 2] / scale;
+
+			tex_coord_offset[i] = (tmp_offset[i * 2] + (1 - frac)) * tu;
+			color_weight[i] = multiplier_ * scale;
+		}
+
+		auto var_g_tex_size = effect_->GetVariableByName("g_tex_size")->AsVector();
+		Vector2f ts(static_cast<float>(tex_size), 1.0f / tex_size);
+		var_g_tex_size->SetFloatVector((float*)(&ts));
+
+		auto var_g_color_weight = effect_->GetVariableByName("g_color_weight")->AsScalar();
+		var_g_color_weight->SetFloatArray(color_weight.data(), 0, 8);
+
+		auto var_g_tc_offset = effect_->GetVariableByName("g_tc_offset")->AsScalar();
+		var_g_tc_offset->SetFloatArray(tex_coord_offset.data(), 0, 8);
 	}
 
 }

@@ -23,8 +23,7 @@ namespace zeta
 		virtual ~OnePassPostProcess();
 
 		void LoadFX(std::string fx_file, std::string tech_name, std::string pass_name);
-
-		virtual void FX(ID3DX11EffectPtr effect, ID3DX11EffectTechnique* tech, ID3DX11EffectPass* pass);
+		void FX(ID3DX11EffectPtr effect, ID3DX11EffectTechnique* tech, ID3DX11EffectPass* pass);
 
 		virtual void SetInput(ID3D11ShaderResourceView* input_srv) override;
 		virtual void SetOutput(FrameBufferPtr output_fb) override;
@@ -89,8 +88,6 @@ namespace zeta
 		virtual void Apply() override;
 
 	protected:
-		uint32_t width_;
-		uint32_t height_;
 		OnePassPostProcessPtr sum_lums_1st_;
 		std::vector<OnePassPostProcessPtr> sum_lums_;
 		AdaptedLumPostProcessPtr adapted_lum_;
@@ -115,6 +112,27 @@ namespace zeta
 		std::array<OnePassPostProcessPtr, 2> downsamplers_;
 		std::array<OnePassPostProcessPtr, 3> blurs_;
 		OnePassPostProcessPtr glow_merger_;
+	};
+
+
+	class SeparableGaussianFilterPostProcess 
+		: public OnePassPostProcess
+	{
+	public:
+		SeparableGaussianFilterPostProcess(ID3DX11EffectPtr effect, bool x_dir);
+		virtual ~SeparableGaussianFilterPostProcess();
+
+		void KernelRadius(int radius);
+		void Multiplier(float multiplier);
+
+	protected:
+		float GaussianDistribution(float x, float y, float rho);
+		void CalSampleOffsets(uint32_t tex_size, float deviation);
+
+	protected:
+		int kernel_radius_;
+		float multiplier_;
+		bool x_dir_;
 	};
 
 }

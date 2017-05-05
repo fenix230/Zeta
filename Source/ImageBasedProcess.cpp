@@ -33,9 +33,10 @@ namespace zeta
 		this->FX(effect, tech, pass);
 	}
 
-	void OnePassPostProcess::SetInput(ID3D11ShaderResourceView* input_srv)
+	void OnePassPostProcess::SetInput(FrameBufferPtr input_fb, int srv_index)
 	{
-		input_ = input_srv;
+		input_ = input_fb;
+		srv_index_ = srv_index;
 	}
 
 	void OnePassPostProcess::SetOutput(FrameBufferPtr output_fb)
@@ -54,7 +55,7 @@ namespace zeta
 		output_->Bind();
 
 		auto var_g_tex = effect_->GetVariableByName("g_tex")->AsShaderResource();
-		var_g_tex->SetResource(input_);
+		var_g_tex->SetResource(input_->RetriveSRV(srv_index_));
 
 		Renderer::Instance().Quad()->Render(effect_.get(), pass_);
 	}
@@ -160,7 +161,7 @@ namespace zeta
 		adapted_lum_.reset();
 	}
 
-	void ImageStatPostProcess::Create(uint32_t width, uint32_t height)
+	void ImageStatPostProcess::CreateBufferChain(uint32_t width, uint32_t height)
 	{
 		fbs_.clear();
 
@@ -170,19 +171,21 @@ namespace zeta
 
 		for (size_t i = 0; i < sum_lums_.size(); ++i)
 		{
-			sum_lums_[i]->SetInput(fbs_.back()->RetriveRTShaderResourceView(0));
+			sum_lums_[i]->SetInput(fbs_.back(), 0);
 
 			fbs_.push_back(std::make_shared<FrameBuffer>(DXGI_FORMAT_R32_FLOAT));
 			fbs_.back()->Create(width, height, 1);
 			sum_lums_[i]->SetOutput(fbs_.back());
 		}
 		
-		adapted_lum_->SetInput(fbs_.back()->RetriveRTShaderResourceView(0));
+		adapted_lum_->SetInput(fbs_.back(), 0);
 	}
 
-	void ImageStatPostProcess::SetInput(ID3D11ShaderResourceView* input_srv)
+	void ImageStatPostProcess::SetInput(FrameBufferPtr input_fb, int srv_index)
 	{
-		sum_lums_1st_->SetInput(input_srv);
+		this->CreateBufferChain(input_fb->Width(), input_fb->Height());
+
+		sum_lums_1st_->SetInput(input_fb, srv_index);
 	}
 
 	FrameBufferPtr ImageStatPostProcess::GetOutput()
@@ -206,7 +209,20 @@ namespace zeta
 
 	LensEffectsPostProcess::LensEffectsPostProcess()
 	{
+		bright_pass_downsampler_ = std::make_shared<OnePassPostProcess>();
+		bright_pass_downsampler_->LoadFX("Shader/HDR.fx", "HDR", "SqrBright");
 
+		downsamplers_[0] = std::make_shared<OnePassPostProcess>();
+		downsamplers_[0]->LoadFX("Shader/HDR.fx", "HDR", "BilinearCopy");
+		downsamplers_[1] = std::make_shared<OnePassPostProcess>();
+		downsamplers_[1]->LoadFX("Shader/HDR.fx", "HDR", "BilinearCopy");
+
+		blurs_[0] = std::make_shared<BlurPostProcess>("SeparableGaussian", 8, 1.0f);
+		blurs_[1] = std::make_shared<BlurPostProcess>("SeparableGaussian", 8, 1.0f);
+		blurs_[2] = std::make_shared<BlurPostProcess>("SeparableGaussian", 8, 1.0f);
+
+		glow_merger_ = std::make_shared<OnePassPostProcess>();
+		glow_merger_->LoadFX("Shader/HDR.fx", "HDR", "GlowMerger");
 	}
 
 	LensEffectsPostProcess::~LensEffectsPostProcess()
@@ -214,9 +230,26 @@ namespace zeta
 
 	}
 
-	void LensEffectsPostProcess::SetInput(ID3D11ShaderResourceView* input_srv)
+	void LensEffectsPostProcess::SetInput(FrameBufferPtr input_fb, int srv_index)
 	{
+		uint32_t width = input_fb->Width();
+		uint32_t height = input_fb->Height();
+		DXGI_FORMAT fmt = input_fb->Format();
 
+		std::array<FrameBufferPtr, 3> downsample_fbs;
+		std::array<FrameBufferPtr, 3> glow_fbs;
+
+		for (int i = 0; i != 3; i++)
+		{
+			downsample_fbs[i] = std::make_shared<FrameBuffer>(fmt);
+			downsample_fbs[i]->Create(width / (2 << i), height / (2 << i), 1);
+
+			glow_fbs[i] = std::make_shared<FrameBuffer>(fmt);
+			glow_fbs[i]->Create(width / (2 << i), height / (2 << i), 1);
+		}
+
+		bright_pass_downsampler_->SetInput(input_fb, 0);
+		bright_pass_downsampler_->SetOutput(downsample_fbs[0]);
 	}
 
 	void LensEffectsPostProcess::SetOutput(FrameBufferPtr output_fb)
@@ -234,12 +267,9 @@ namespace zeta
 
 	}
 
-	SeparableGaussianFilterPostProcess::SeparableGaussianFilterPostProcess(ID3DX11EffectPtr effect, bool x_dir)
+	SeparableGaussianFilterPostProcess::SeparableGaussianFilterPostProcess(bool x_dir)
 	{
-		ID3DX11EffectTechnique* tech = effect->GetTechniqueByName("HDR");
-		ID3DX11EffectPass* pass = tech->GetPassByName(x_dir ? "BlurX" : "BlurY");
-
-		this->FX(effect, tech, pass);
+		this->LoadFX("Shader/HDR.fx", "HDR", x_dir ? "BlurX" : "BlurY");
 		x_dir_ = x_dir;
 	}
 
@@ -314,6 +344,58 @@ namespace zeta
 
 		auto var_g_tc_offset = effect_->GetVariableByName("g_tc_offset")->AsScalar();
 		var_g_tc_offset->SetFloatArray(tex_coord_offset.data(), 0, 8);
+	}
+
+
+	ImageBasedProcessPtr CreateFilter(std::string filter_name, int kernel_radius, float multiplier, bool x_dir)
+	{
+		if (filter_name == "SeparableGaussian") 
+		{
+			auto filter = std::make_shared<SeparableGaussianFilterPostProcess>(x_dir);
+			filter->KernelRadius(kernel_radius);
+			filter->Multiplier(multiplier);
+			return filter;
+		}
+
+		return nullptr;
+	}
+
+	BlurPostProcess::BlurPostProcess(std::string filter_name, int kernel_radius, float multiplier)
+	{
+		x_filter_ = CreateFilter(filter_name, kernel_radius, multiplier, true);
+		y_filter_ = CreateFilter(filter_name, kernel_radius, multiplier, false);
+	}
+
+	BlurPostProcess::~BlurPostProcess()
+	{
+
+	}
+
+	void BlurPostProcess::SetInput(FrameBufferPtr input_fb, int srv_index)
+	{
+		fb_ = std::make_shared<FrameBuffer>();
+		fb_->Create(input_fb->Width(), input_fb->Height(), 1);
+
+		x_filter_->SetInput(input_fb, srv_index);
+		x_filter_->SetOutput(fb_);
+
+		y_filter_->SetInput(fb_, 0);
+	}
+
+	void BlurPostProcess::SetOutput(FrameBufferPtr output_fb)
+	{
+		y_filter_->SetOutput(output_fb);
+	}
+
+	FrameBufferPtr BlurPostProcess::GetOutput()
+	{
+		return y_filter_->GetOutput();
+	}
+
+	void BlurPostProcess::Apply()
+	{
+		x_filter_->Apply();
+		y_filter_->Apply();
 	}
 
 }

@@ -364,7 +364,7 @@ namespace zeta
 		srgb_fb_->Clear();
 		srgb_fb_->Bind();
 
-		srgb_pp_->SetInput(shading_fb_->RetriveRTShaderResourceView(0));
+		srgb_pp_->SetInput(shading_fb_, 0);
 		srgb_pp_->SetOutput(srgb_fb_);
 		srgb_pp_->Apply();
 

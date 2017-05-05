@@ -100,6 +100,11 @@ namespace zeta
 		Renderer::Instance().D3DContext()->OMSetRenderTargets((UINT)d3d_rtvs.size(), d3d_rtvs.data(), d3d_dsv_.get());
 	}
 
+	DXGI_FORMAT FrameBuffer::Format()
+	{
+		return rtv_fmt_;
+	}
+
 	uint32_t FrameBuffer::Width()
 	{
 		return width_;
@@ -144,6 +149,16 @@ namespace zeta
 		}
 		
 		return d3d_ds_srv_.get();
+	}
+
+	ID3D11ShaderResourceView* FrameBuffer::RetriveSRV(int index)
+	{
+		if (index >= 0)
+		{
+			return this->RetriveRTShaderResourceView((size_t)index);
+		}
+
+		return this->RetriveDSShaderResourceView();
 	}
 
 }

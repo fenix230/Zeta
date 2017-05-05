@@ -37,4 +37,16 @@ namespace zeta
 
 	class AdaptedLumPostProcess;
 	typedef std::shared_ptr<AdaptedLumPostProcess> AdaptedLumPostProcessPtr;
+
+	class ImageStatPostProcess;
+	typedef std::shared_ptr<ImageStatPostProcess> ImageStatPostProcessPtr;
+
+	class LensEffectsPostProcess;
+	typedef std::shared_ptr<LensEffectsPostProcess> LensEffectsPostProcessPtr;
+
+	class SeparableGaussianFilterPostProcess;
+	typedef std::shared_ptr<SeparableGaussianFilterPostProcess> SeparableGaussianFilterPostProcessPtr;
+
+	class BlurPostProcess;
+	typedef std::shared_ptr<BlurPostProcess> BlurPostProcessPtr;
 }

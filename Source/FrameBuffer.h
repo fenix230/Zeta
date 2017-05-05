@@ -22,12 +22,16 @@ namespace zeta
 
 		void Bind();
 
+		DXGI_FORMAT Format();
+
 		uint32_t Width();
 		uint32_t Height();
 
 		ID3D11ShaderResourceView* RetriveRTShaderResourceView(size_t index);
 
 		ID3D11ShaderResourceView* RetriveDSShaderResourceView();
+
+		ID3D11ShaderResourceView* RetriveSRV(int index);
 
 	private:
 		DXGI_FORMAT rtv_fmt_;

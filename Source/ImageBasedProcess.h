@@ -8,7 +8,9 @@ namespace zeta
 	class ImageBasedProcess
 	{
 	public:
-		virtual void SetInput(ID3D11ShaderResourceView* input_srv) {}
+		virtual ~ImageBasedProcess() {}
+
+		virtual void SetInput(FrameBufferPtr input_fb, int srv_index) {}
 		virtual void SetOutput(FrameBufferPtr output_fb) {}
 		virtual FrameBufferPtr GetOutput() { return nullptr; }
 		virtual void Apply() {}
@@ -25,13 +27,14 @@ namespace zeta
 		void LoadFX(std::string fx_file, std::string tech_name, std::string pass_name);
 		void FX(ID3DX11EffectPtr effect, ID3DX11EffectTechnique* tech, ID3DX11EffectPass* pass);
 
-		virtual void SetInput(ID3D11ShaderResourceView* input_srv) override;
+		virtual void SetInput(FrameBufferPtr input_fb, int srv_index) override;
 		virtual void SetOutput(FrameBufferPtr output_fb) override;
 		virtual FrameBufferPtr GetOutput() override;
 		virtual void Apply() override;
 
 	protected:
-		ID3D11ShaderResourceView* input_;
+		FrameBufferPtr input_;
+		int srv_index_;
 		FrameBufferPtr output_;
 
 		ID3DX11EffectPtr effect_;
@@ -81,11 +84,11 @@ namespace zeta
 		ImageStatPostProcess();
 		virtual ~ImageStatPostProcess();
 
-		void Create(uint32_t width, uint32_t height);
-
-		virtual void SetInput(ID3D11ShaderResourceView* input_srv) override;
+		virtual void SetInput(FrameBufferPtr input_fb, int srv_index) override;
 		virtual FrameBufferPtr GetOutput() override;
 		virtual void Apply() override;
+
+		void CreateBufferChain(uint32_t width, uint32_t height);
 
 	protected:
 		OnePassPostProcessPtr sum_lums_1st_;
@@ -102,7 +105,7 @@ namespace zeta
 		LensEffectsPostProcess();
 		virtual ~LensEffectsPostProcess();
 
-		virtual void SetInput(ID3D11ShaderResourceView* input_srv) override;
+		virtual void SetInput(FrameBufferPtr input_fb, int srv_index) override;
 		virtual void SetOutput(FrameBufferPtr output_fb) override;
 		virtual FrameBufferPtr GetOutput() override;
 		virtual void Apply() override;
@@ -119,7 +122,7 @@ namespace zeta
 		: public OnePassPostProcess
 	{
 	public:
-		SeparableGaussianFilterPostProcess(ID3DX11EffectPtr effect, bool x_dir);
+		SeparableGaussianFilterPostProcess(bool x_dir);
 		virtual ~SeparableGaussianFilterPostProcess();
 
 		void KernelRadius(int radius);
@@ -133,6 +136,28 @@ namespace zeta
 		int kernel_radius_;
 		float multiplier_;
 		bool x_dir_;
+	};
+
+
+	ImageBasedProcessPtr CreateFilter(std::string filter_name, int kernel_radius, float multiplier, bool x_dir);
+
+
+	class BlurPostProcess
+		: public ImageBasedProcess
+	{
+	public:
+		BlurPostProcess(std::string filter_name, int kernel_radius, float multiplier);
+		virtual ~BlurPostProcess();
+
+		virtual void SetInput(FrameBufferPtr input_fb, int srv_index) override;
+		virtual void SetOutput(FrameBufferPtr output_fb) override;
+		virtual FrameBufferPtr GetOutput() override;
+		virtual void Apply() override;
+
+	private:
+		ImageBasedProcessPtr x_filter_;
+		ImageBasedProcessPtr y_filter_;
+		FrameBufferPtr fb_;
 	};
 
 }

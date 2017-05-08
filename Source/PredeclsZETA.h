@@ -49,4 +49,7 @@ namespace zeta
 
 	class BlurPostProcess;
 	typedef std::shared_ptr<BlurPostProcess> BlurPostProcessPtr;
+
+	class HDRPostProcess;
+	typedef std::shared_ptr<HDRPostProcess> HDRPostProcessPtr;
 }

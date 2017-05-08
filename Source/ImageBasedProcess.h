@@ -10,10 +10,18 @@ namespace zeta
 	public:
 		virtual ~ImageBasedProcess() {}
 
-		virtual void SetInput(FrameBufferPtr input_fb, int srv_index) {}
-		virtual void SetOutput(FrameBufferPtr output_fb) {}
-		virtual FrameBufferPtr GetOutput() { return nullptr; }
-		virtual void Apply() {}
+		virtual void SetInput(FrameBufferPtr fb, std::string pin_name, int srv_index);
+		virtual void SetInputDefault(FrameBufferPtr fb);
+		virtual void SetOutput(FrameBufferPtr fb);
+		virtual FrameBufferPtr GetOutput();
+
+		virtual void Apply() = 0;
+
+	protected:
+		std::vector<FrameBufferPtr> input_fbs_;
+		std::vector<std::string> input_pin_names_;
+		std::vector<int> input_srv_indexs_;
+		FrameBufferPtr output_fb_;
 	};
 
 
@@ -27,16 +35,9 @@ namespace zeta
 		void LoadFX(std::string fx_file, std::string tech_name, std::string pass_name);
 		void FX(ID3DX11EffectPtr effect, ID3DX11EffectTechnique* tech, ID3DX11EffectPass* pass);
 
-		virtual void SetInput(FrameBufferPtr input_fb, int srv_index) override;
-		virtual void SetOutput(FrameBufferPtr output_fb) override;
-		virtual FrameBufferPtr GetOutput() override;
 		virtual void Apply() override;
 
 	protected:
-		FrameBufferPtr input_;
-		int srv_index_;
-		FrameBufferPtr output_;
-
 		ID3DX11EffectPtr effect_;
 		ID3DX11EffectTechnique* tech_;
 		ID3DX11EffectPass* pass_;
@@ -77,27 +78,6 @@ namespace zeta
 	};
 
 
-	class ImageStatPostProcess
-		: public ImageBasedProcess
-	{
-	public:
-		ImageStatPostProcess();
-		virtual ~ImageStatPostProcess();
-
-		virtual void SetInput(FrameBufferPtr input_fb, int srv_index) override;
-		virtual FrameBufferPtr GetOutput() override;
-		virtual void Apply() override;
-
-		void CreateBufferChain(uint32_t width, uint32_t height);
-
-	protected:
-		OnePassPostProcessPtr sum_lums_1st_;
-		std::vector<OnePassPostProcessPtr> sum_lums_;
-		AdaptedLumPostProcessPtr adapted_lum_;
-		std::vector<FrameBufferPtr> fbs_;
-	};
-
-
 	class LensEffectsPostProcess
 		: public ImageBasedProcess
 	{
@@ -105,15 +85,17 @@ namespace zeta
 		LensEffectsPostProcess();
 		virtual ~LensEffectsPostProcess();
 
-		virtual void SetInput(FrameBufferPtr input_fb, int srv_index) override;
-		virtual void SetOutput(FrameBufferPtr output_fb) override;
+		virtual void SetInput(FrameBufferPtr fb, std::string pin_name, int srv_index) override {}
+		virtual void SetInputDefault(FrameBufferPtr fb) override;
+		virtual void SetOutput(FrameBufferPtr output_fb) override {}
 		virtual FrameBufferPtr GetOutput() override;
 		virtual void Apply() override;
 
 	private:
+		int bufw_, bufh_;
 		OnePassPostProcessPtr bright_pass_downsampler_;
 		std::array<OnePassPostProcessPtr, 2> downsamplers_;
-		std::array<OnePassPostProcessPtr, 3> blurs_;
+		std::array<ImageBasedProcessPtr, 3> blurs_;
 		OnePassPostProcessPtr glow_merger_;
 	};
 
@@ -149,7 +131,8 @@ namespace zeta
 		BlurPostProcess(std::string filter_name, int kernel_radius, float multiplier);
 		virtual ~BlurPostProcess();
 
-		virtual void SetInput(FrameBufferPtr input_fb, int srv_index) override;
+		virtual void SetInput(FrameBufferPtr fb, std::string pin_name, int srv_index) override {}
+		virtual void SetInputDefault(FrameBufferPtr fb) override;
 		virtual void SetOutput(FrameBufferPtr output_fb) override;
 		virtual FrameBufferPtr GetOutput() override;
 		virtual void Apply() override;
@@ -158,6 +141,49 @@ namespace zeta
 		ImageBasedProcessPtr x_filter_;
 		ImageBasedProcessPtr y_filter_;
 		FrameBufferPtr fb_;
+	};
+
+
+	class ImageStatPostProcess
+		: public ImageBasedProcess
+	{
+	public:
+		ImageStatPostProcess();
+		virtual ~ImageStatPostProcess();
+
+		virtual void SetInput(FrameBufferPtr fb, std::string pin_name, int srv_index) override {}
+		virtual void SetInputDefault(FrameBufferPtr fb) override;
+		virtual void SetOutput(FrameBufferPtr fb) override {}
+		virtual FrameBufferPtr GetOutput() override;
+		virtual void Apply() override;
+
+		void CreateBufferChain(uint32_t width, uint32_t height);
+
+	protected:
+		OnePassPostProcessPtr sum_lums_1st_;
+		std::vector<OnePassPostProcessPtr> sum_lums_;
+		AdaptedLumPostProcessPtr adapted_lum_;
+		std::vector<FrameBufferPtr> fbs_;
+	};
+
+
+	class HDRPostProcess
+		: public ImageBasedProcess
+	{
+	public:
+		HDRPostProcess();
+		virtual ~HDRPostProcess();
+
+		virtual void SetInput(FrameBufferPtr fb, std::string pin_name, int srv_index) override {}
+		virtual void SetInputDefault(FrameBufferPtr fb) override;
+		virtual void SetOutput(FrameBufferPtr fb) override;
+		virtual FrameBufferPtr GetOutput() override;
+		virtual void Apply() override;
+
+	private:
+		ImageStatPostProcessPtr image_stat_;
+		LensEffectsPostProcessPtr lens_effects_;
+		OnePassPostProcessPtr tone_mapping_;
 	};
 
 }

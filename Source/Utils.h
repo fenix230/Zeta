@@ -192,6 +192,9 @@ namespace zeta
 }
 
 
-#define DO_THROW_MSG(x)	{ throw std::exception(x); }
-#define DO_THROW(x)	{ throw std::system_error(std::make_error_code(x), CombineFileLine(__FILE__, __LINE__)); }
-#define THROW_FAILED(x)	{ HRESULT _hr = x; if (static_cast<HRESULT>(_hr) < 0) { throw std::runtime_error(CombineFileLine(__FILE__, __LINE__)); } }
+void DO_THROW_EXCEPTION(std::exception& e);
+void DO_THROW_HR_EXCEPTION(HRESULT hr, std::exception& e);
+
+#define DO_THROW_MSG(x)	{ DO_THROW_EXCEPTION(std::exception(x)); }
+#define DO_THROW(x)	{ DO_THROW_EXCEPTION(std::system_error(std::make_error_code(x), CombineFileLine(__FILE__, __LINE__))); }
+#define THROW_FAILED(x)	{ HRESULT _hr = x; if (static_cast<HRESULT>(_hr) < 0) { DO_THROW_HR_EXCEPTION(_hr, std::runtime_error(CombineFileLine(__FILE__, __LINE__))); } }

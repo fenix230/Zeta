@@ -14,6 +14,10 @@ Texture2D	g_glow_tex_0;
 Texture2D	g_glow_tex_1;
 Texture2D	g_glow_tex_2;
 
+Texture2D	g_src_tex;
+Texture2D	g_lum_tex;
+Texture2D	g_bloom_tex;
+
 
 SamplerState PointSampler
 {
@@ -85,14 +89,14 @@ SUMLUM_VSO SumLumVS(float4 pos : POSITION)
 float4 SumLum4x4LogPS(SUMLUM_VSO ipt) : SV_Target
 {
 	const float3 RGB_TO_LUM = float3(0.2126f, 0.7152f, 0.0722f);
-	float4 tex[2] = { ipt.tc0, ipt.tc1 };
 
 	float s = 0;
-	for (int i = 0; i < 2; ++i)
-	{
-		s += log(dot(g_tex.Sample(LinearSampler, tex[i].xy).rgb, RGB_TO_LUM) + 0.001f);
-		s += log(dot(g_tex.Sample(LinearSampler, tex[i].zw).rgb, RGB_TO_LUM) + 0.001f);
-	}
+
+	s += log(dot(g_tex.Sample(LinearSampler, ipt.tc0.xy).rgb, RGB_TO_LUM) + 0.001f);
+	s += log(dot(g_tex.Sample(LinearSampler, ipt.tc0.zw).rgb, RGB_TO_LUM) + 0.001f);
+
+	s += log(dot(g_tex.Sample(LinearSampler, ipt.tc1.xy).rgb, RGB_TO_LUM) + 0.001f);
+	s += log(dot(g_tex.Sample(LinearSampler, ipt.tc1.zw).rgb, RGB_TO_LUM) + 0.001f);
 
 	return float4(s / 4, 0, 0, 0);
 }
@@ -100,14 +104,13 @@ float4 SumLum4x4LogPS(SUMLUM_VSO ipt) : SV_Target
 
 float4 SumLum4x4IterativePS(SUMLUM_VSO ipt) : SV_Target
 {
-	float4 tex[2] = { ipt.tc0, ipt.tc1 };
-
 	float s = 0;
-	for (int i = 0; i < 2; ++i)
-	{
-		s += g_tex.Sample(LinearSampler, tex[i].xy).r;
-		s += g_tex.Sample(LinearSampler, tex[i].zw).r;
-	}
+
+	s += g_tex.Sample(LinearSampler, ipt.tc0.xy).r;
+	s += g_tex.Sample(LinearSampler, ipt.tc0.zw).r;
+
+	s += g_tex.Sample(LinearSampler, ipt.tc1.xy).r;
+	s += g_tex.Sample(LinearSampler, ipt.tc1.zw).r;
 
 	return float4(s / 4, 0, 0, 0);
 }
@@ -191,6 +194,8 @@ BLUR_VSO BlurXVS(float4 pos : POSITION)
 	opt.tc2 = tex[2];
 	opt.tc3 = tex[3];
 	opt.tc_ori = Tex0;
+
+	return opt;
 }
 
 
@@ -211,6 +216,8 @@ BLUR_VSO BlurYVS(float4 pos : POSITION)
 	opt.tc2 = tex[2];
 	opt.tc3 = tex[3];
 	opt.tc_ori = Tex0;
+
+	return opt;
 }
 
 
@@ -222,8 +229,8 @@ float4 CalcBlur(float4 iTex0, float4 iTex1, float4 iTex2, float4 iTex3, float2 o
 	for (int i = 0; i < 4; ++i)
 	{
 		tex[i] += offset.xyxy;
-		color.rgb += src_tex.Sample(src_sampler, tex[i].xy).rgb * color_weight[i * 2 + 0];
-		color.rgb += src_tex.Sample(src_sampler, tex[i].zw).rgb * color_weight[i * 2 + 1];
+		color.rgb += g_tex.Sample(LinearSampler, tex[i].xy).rgb * g_color_weight[i * 2 + 0];
+		color.rgb += g_tex.Sample(LinearSampler, tex[i].zw).rgb * g_color_weight[i * 2 + 1];
 	}
 
 	return color;
@@ -238,7 +245,7 @@ float4 BlurXPS(BLUR_VSO ipt) : SV_Target
 	float4 iTex3 = ipt.tc3;
 	float2 iOriTex = ipt.tc_ori;
 
-	float2 offset = float2((floor(iOriTex.x * src_tex_size.x) + 0.5f) * src_tex_size.y - iOriTex.x, 0);
+	float2 offset = float2((floor(iOriTex.x * g_tex_size.x) + 0.5f) * g_tex_size.y - iOriTex.x, 0);
 	return CalcBlur(iTex0, iTex1, iTex2, iTex3, offset);
 }
 
@@ -251,18 +258,84 @@ float4 BlurYPS(BLUR_VSO ipt) : SV_Target
 	float4 iTex3 = ipt.tc3;
 	float2 iOriTex = ipt.tc_ori;
 
-	float2 offset = float2(0, (floor(iOriTex.y * src_tex_size.x) + 0.5f) * src_tex_size.y - iOriTex.y);
+	float2 offset = float2(0, (floor(iOriTex.y * g_tex_size.x) + 0.5f) * g_tex_size.y - iOriTex.y);
 	return CalcBlur(iTex0, iTex1, iTex2, iTex3, offset);
 }
 
 
 float4 GlowMergerPS(PP_VSO ipt) : SV_Target
 {
-	float4 clr0 = glow_tex_0.Sample(bilinear_sampler, ipt.tc);
-	float4 clr1 = glow_tex_1.Sample(bilinear_sampler, ipt.tc);
-	float4 clr2 = glow_tex_2.Sample(bilinear_sampler, ipt.tc);
+	float4 clr0 = g_glow_tex_0.Sample(LinearSampler, ipt.tc);
+	float4 clr1 = g_glow_tex_1.Sample(LinearSampler, ipt.tc);
+	float4 clr2 = g_glow_tex_2.Sample(LinearSampler, ipt.tc);
 
 	return clr0 * 2.0f + clr1 * 1.15f + clr2 * 0.45f;
+}
+
+
+struct TONEMAPPING_VSO
+{
+	float3 tc : TEXCOORD0;
+	float4 pos : SV_Position;
+};
+
+
+TONEMAPPING_VSO ToneMappingVS(float4 pos : POSITION)
+{
+	TONEMAPPING_VSO opt;
+
+	opt.pos = pos;
+	opt.tc.xy = TexCoordFromPos(pos);
+	float adapted_lum = g_lum_tex.SampleLevel(PointSampler, 0.5f.xx, 0).r;
+	opt.tc.z = max(0.001f, adapted_lum);
+
+	return opt;
+}
+
+
+float EyeAdaption(float lum)
+{
+	return lerp(0.2f, lum, 0.5f);
+}
+
+
+float3 ACESFilm(float3 x)
+{
+	const float A = 2.51f;
+	const float B = 0.03f;
+	const float C = 2.43f;
+	const float D = 0.59f;
+	const float E = 0.14f;
+
+	return (x * (A * x + B)) / (x * (C * x + D) + E);
+}
+
+
+float3 ToneMapping(float3 color, float3 blur, float adapted_lum)
+{
+	const float3 RGB_TO_LUM = float3(0.2126f, 0.7152f, 0.0722f);
+	const float3 BLUE_SHIFT = float3(0.4f, 0.4f, 0.7f);
+
+	color += blur * 0.25f;
+
+	float lum = dot(color, RGB_TO_LUM);
+
+	// martin's modified blue shift
+	color = lerp(lum * BLUE_SHIFT, color, saturate(16.0f * lum));
+
+	float adapted_lum_dest = 2 / (max(0.1f, 1 + 10 * EyeAdaption(adapted_lum)));
+
+	return ACESFilm(adapted_lum_dest * color);
+}
+
+
+float4 ToneMappingPS(TONEMAPPING_VSO ipt) : SV_Target
+{
+	float3 ldr_rgb = saturate(ToneMapping(
+		g_src_tex.Sample(LinearSampler, ipt.tc.xy).rgb,
+		g_bloom_tex.Sample(LinearSampler, ipt.tc.xy).rgb,
+		ipt.tc.z));
+	return float4(ldr_rgb, 1);
 }
 
 
@@ -342,6 +415,16 @@ technique11 HDR
 	{
 		SetVertexShader(CompileShader(vs_5_0, PostProcessVS()));
 		SetPixelShader(CompileShader(ps_5_0, GlowMergerPS()));
+
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(DepthDisalbedDSS, 0);
+		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
+	}
+
+	pass ToneMapping
+	{
+		SetVertexShader(CompileShader(vs_5_0, ToneMappingVS()));
+		SetPixelShader(CompileShader(ps_5_0, ToneMappingPS()));
 
 		SetRasterizerState(BackSolidRS);
 		SetDepthStencilState(DepthDisalbedDSS, 0);

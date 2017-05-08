@@ -77,12 +77,14 @@ namespace zeta
 		lighting_fb_.reset();
 		shading_fb_.reset();
 		srgb_fb_.reset();
+		hdr_fb_.reset();
 
 		quad_.reset();
 		skybox_.reset();
 
 		dr_effect_.reset();
 		srgb_pp_.reset();
+		hdr_pp_.reset();
 		d3d_imm_ctx_.reset();
 		d3d_device_.reset();
 
@@ -156,6 +158,8 @@ namespace zeta
 		dr_effect_ = MakeCOMPtr(this->LoadEffect("Shader/DeferredRendering.fx"));
 		srgb_pp_ = std::make_shared<OnePassPostProcess>();
 		srgb_pp_->LoadFX("Shader/SRGBCorrection.fx", "SRGBCorrection", "SRGBCorrection");
+		
+		hdr_pp_ = std::make_shared<HDRPostProcess>();
 	}
 
 	void Renderer::Resize(int width, int height)
@@ -173,7 +177,13 @@ namespace zeta
 
 		gbuffer_fb_.reset();
 		lighting_fb_.reset();
+		shading_fb_.reset();
 		srgb_fb_.reset();
+		if (hdr_pp_)
+		{
+			hdr_pp_->SetOutput(nullptr);
+		}
+		hdr_fb_.reset();
 
 		//SwapChain
 		IDXGISwapChain1* dxgi_sc = nullptr;
@@ -221,11 +231,14 @@ namespace zeta
 		shading_fb_ = std::make_shared<FrameBuffer>();
 		shading_fb_->Create(width_, height_, 1);
 
+		srgb_fb_ = std::make_shared<FrameBuffer>();
+		srgb_fb_->Create(width_, height_, 1);
+
 		ID3D11Texture2D* frame_buffer = nullptr;
 		THROW_FAILED(dxgi_sc->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&frame_buffer));
 
-		srgb_fb_ = std::make_shared<FrameBuffer>();
-		srgb_fb_->Create(width_, height_, frame_buffer);
+		hdr_fb_ = std::make_shared<FrameBuffer>();
+		hdr_fb_->Create(width_, height_, frame_buffer);
 
 		frame_buffer->Release();
 		frame_buffer = nullptr;
@@ -364,9 +377,17 @@ namespace zeta
 		srgb_fb_->Clear();
 		srgb_fb_->Bind();
 
-		srgb_pp_->SetInput(shading_fb_, 0);
+		srgb_pp_->SetInputDefault(shading_fb_);
 		srgb_pp_->SetOutput(srgb_fb_);
 		srgb_pp_->Apply();
+
+		//HDR post process
+		hdr_fb_->Clear();
+		hdr_fb_->Bind();
+
+		hdr_pp_->SetInputDefault(srgb_fb_);
+		hdr_pp_->SetOutput(hdr_fb_);
+		hdr_pp_->Apply();
 
 		gi_swap_chain_1_->Present(0, 0);
 

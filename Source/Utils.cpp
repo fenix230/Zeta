@@ -236,3 +236,14 @@ namespace zeta
 	}
 
 }
+
+
+void DO_THROW_EXCEPTION(std::exception& e)
+{
+	throw e;
+}
+
+void DO_THROW_HR_EXCEPTION(HRESULT hr, std::exception& e)
+{
+	throw e;
+}

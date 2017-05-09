@@ -138,7 +138,33 @@ namespace zeta
 		return std::string(str);
 	}
 
-	Vector4f::Vector4f() : XMFLOAT4(0, 0, 0, 0) 
+	float LinearToSRGBF(float linear)
+	{
+		if (linear < 0.0031308f)
+		{
+			return 12.92f * linear;
+		}
+		else
+		{
+			float const ALPHA = 0.055f;
+			return (1 + ALPHA) * pow(linear, 1 / 2.4f) - ALPHA;
+		}
+	}
+
+	float SRGBToLinearF(float srgb)
+	{
+		if (srgb < 0.04045f)
+		{
+			return srgb / 12.92f;
+		}
+		else
+		{
+			float const ALPHA = 0.055f;
+			return pow((srgb + ALPHA) / (1 + ALPHA), 2.4f);
+		}
+	}
+
+	Vector4f::Vector4f() : XMFLOAT4(0, 0, 0, 0)
 	{
 	}
 
@@ -233,6 +259,121 @@ namespace zeta
 	{
 		std::chrono::high_resolution_clock::time_point tp = std::chrono::high_resolution_clock::now();
 		return std::chrono::duration_cast<std::chrono::duration<double>>(tp.time_since_epoch()).count();
+	}
+
+	void SetEffectVarShaderResource(ID3DX11Effect* effect, const char* var_name, ID3D11ShaderResourceView *var)
+	{
+		effect->GetVariableByName(var_name)->AsShaderResource()->SetResource(var);
+	}
+
+	void SetEffectVarScalar(ID3DX11Effect* effect, const char* var_name, float var)
+	{
+		effect->GetVariableByName(var_name)->AsScalar()->SetFloat(var);
+	}
+
+	void SetEffectVarScalar(ID3DX11Effect* effect, const char* var_name, const float* var, uint32_t var_count)
+	{
+		effect->GetVariableByName(var_name)->AsScalar()->SetFloatArray(var, 0, var_count);
+	}
+
+	void SetEffectVarScalar(ID3DX11Effect* effect, const char* var_name, int var)
+	{
+		effect->GetVariableByName(var_name)->AsScalar()->SetInt(var);
+	}
+
+	void SetEffectVarScalar(ID3DX11Effect* effect, const char* var_name, const int* var, uint32_t var_count)
+	{
+		effect->GetVariableByName(var_name)->AsScalar()->SetIntArray(var, 0, var_count);
+	}
+
+	void SetEffectVarScalar(ID3DX11Effect* effect, const char* var_name, bool var)
+	{
+		effect->GetVariableByName(var_name)->AsScalar()->SetBool(var);
+	}
+
+	void SetEffectVarScalar(ID3DX11Effect* effect, const char* var_name, const bool* var, uint32_t var_count)
+	{
+		effect->GetVariableByName(var_name)->AsScalar()->SetBoolArray(var, 0, var_count);
+	}
+
+	void SetEffectVarVector(ID3DX11Effect* effect, const char* var_name, const bool* var)
+	{
+		effect->GetVariableByName(var_name)->AsVector()->SetBoolVector(var);
+	}
+
+	void SetEffectVarVector(ID3DX11Effect* effect, const char* var_name, const bool* var, uint32_t var_count)
+	{
+		effect->GetVariableByName(var_name)->AsVector()->SetBoolVectorArray(var, 0, var_count);
+	}
+
+	void SetEffectVarVector(ID3DX11Effect* effect, const char* var_name, const int* var)
+	{
+		effect->GetVariableByName(var_name)->AsVector()->SetIntVector(var);
+	}
+
+	void SetEffectVarVector(ID3DX11Effect* effect, const char* var_name, const int* var, uint32_t var_count)
+	{
+		effect->GetVariableByName(var_name)->AsVector()->SetIntVectorArray(var, 0, var_count);
+	}
+
+	void SetEffectVarVector(ID3DX11Effect* effect, const char* var_name, const float* var)
+	{
+		effect->GetVariableByName(var_name)->AsVector()->SetFloatVector(var);
+	}
+
+	void SetEffectVarVector(ID3DX11Effect* effect, const char* var_name, const float* var, uint32_t var_count)
+	{
+		effect->GetVariableByName(var_name)->AsVector()->SetFloatVectorArray(var, 0, var_count);
+	}
+
+	void SetEffectVarMatrix(ID3DX11Effect* effect, const char* var_name, const float* var)
+	{
+		effect->GetVariableByName(var_name)->AsMatrix()->SetMatrix(var);
+	}
+
+	void SetEffectVarMatrix(ID3DX11Effect* effect, const char* var_name, const float* var, uint32_t var_count)
+	{
+		effect->GetVariableByName(var_name)->AsMatrix()->SetMatrixArray(var, 0, var_count);
+	}
+
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, ID3D11ShaderResourceView *var)
+	{
+		SetEffectVarShaderResource(effect, var_name, var);
+	}
+
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, bool var)
+	{
+		SetEffectVarScalar(effect, var_name, var);
+	}
+
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, int var)
+	{
+		SetEffectVarScalar(effect, var_name, var);
+	}
+
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, float var)
+	{
+		SetEffectVarScalar(effect, var_name, var);
+	}
+
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, const Vector2f& var)
+	{
+		SetEffectVarVector(effect, var_name, (float*)&var);
+	}
+
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, const Vector3f& var)
+	{
+		SetEffectVarVector(effect, var_name, (float*)&var);
+	}
+
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, const Vector4f& var)
+	{
+		SetEffectVarVector(effect, var_name, (float*)&var);
+	}
+
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, const Matrix& var)
+	{
+		SetEffectVarMatrix(effect, var_name, (float*)&var);
 	}
 
 }

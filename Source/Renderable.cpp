@@ -139,32 +139,25 @@ namespace zeta
 		//Material
 		if (d3d_srv_)
 		{
-			auto var_g_albedo_tex = effect->GetVariableByName("g_albedo_tex")->AsShaderResource();
-			var_g_albedo_tex->SetResource(d3d_srv_.get());
-
-			auto var_g_albedo_map_enabled = effect->GetVariableByName("g_albedo_map_enabled")->AsScalar();
-			var_g_albedo_map_enabled->SetBool(true);
-
-			auto var_g_albedo_clr = effect->GetVariableByName("g_albedo_clr")->AsVector();
 			Vector3f albedo_clr(0.58f, 0.58f, 0.58f);
-			var_g_albedo_clr->SetFloatVector((float*)&albedo_clr);
+	
+			SetEffectVar(effect, "g_albedo_tex", d3d_srv_.get());
+			SetEffectVar(effect, "g_albedo_map_enabled", true);
+			SetEffectVar(effect, "g_albedo_clr", albedo_clr);
 		}
 		else
 		{
-			auto var_g_albedo_map_enabled = effect->GetVariableByName("g_albedo_map_enabled")->AsScalar();
-			var_g_albedo_map_enabled->SetBool(false);
+			Vector3f albedo_clr = SRGBToLinear(kd_);
 
-			auto var_g_albedo_clr = effect->GetVariableByName("g_albedo_clr")->AsVector();
-			var_g_albedo_clr->SetFloatVector((float*)&kd_);
+			SetEffectVar(effect, "g_albedo_map_enabled", false);
+			SetEffectVar(effect, "g_albedo_clr", albedo_clr);
 		}
 
-		auto var_g_metalness_clr = effect->GetVariableByName("g_metalness_clr")->AsVector();
 		Vector2f metalness_clr(0.02f, 0);
-		var_g_metalness_clr->SetFloatVector((float*)&metalness_clr);
+		SetEffectVar(effect, "g_metalness_clr", metalness_clr);
 
-		auto var_g_glossiness_clr = effect->GetVariableByName("g_glossiness_clr")->AsVector();
 		Vector2f glossiness_clr(0.04f, 0);
-		var_g_glossiness_clr->SetFloatVector((float*)&glossiness_clr);
+		SetEffectVar(effect, "g_glossiness_clr", glossiness_clr);
 
 		//Vertex buffer and index buffer
 		std::array<ID3D11Buffer*, 1> buffers = {
@@ -320,9 +313,6 @@ namespace zeta
 
 	void SkyBoxRenderable::Render(ID3DX11Effect* effect, ID3DX11EffectPass* pass)
 	{
-		auto var_g_skybox_tex = effect->GetVariableByName("g_skybox_tex")->AsShaderResource();
-		var_g_skybox_tex->SetResource(d3d_srv_.get());
-
 		Matrix rot_view = Renderer::Instance().GetCamera()->view_;
 		rot_view.At(3, 0) = 0;
 		rot_view.At(3, 1) = 0;
@@ -330,8 +320,8 @@ namespace zeta
 		Matrix proj = Renderer::Instance().GetCamera()->proj_;
 		Matrix inv_mvp = Inverse(rot_view * proj);
 
-		auto var_g_inv_mvp_mat = effect->GetVariableByName("g_inv_mvp_mat")->AsMatrix();
-		var_g_inv_mvp_mat->SetMatrix((float*)&inv_mvp);
+		SetEffectVar(effect, "g_skybox_tex", d3d_srv_.get());
+		SetEffectVar(effect, "g_inv_mvp_mat", inv_mvp);
 
 		QuadRenderable::Render(effect, pass);
 	}

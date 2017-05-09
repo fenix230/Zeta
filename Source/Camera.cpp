@@ -7,17 +7,12 @@ namespace zeta
 
 	void Camera::Bind(ID3DX11Effect* effect)
 	{
-		auto var_g_model_mat = effect->GetVariableByName("g_model_mat")->AsMatrix();
-		auto var_g_view_mat = effect->GetVariableByName("g_view_mat")->AsMatrix();
-		auto var_g_proj_mat = effect->GetVariableByName("g_proj_mat")->AsMatrix();
-		auto var_g_inv_proj_mat = effect->GetVariableByName("g_inv_proj_mat")->AsMatrix();
-
-		var_g_model_mat->SetMatrix((float*)&world_);
-		var_g_view_mat->SetMatrix((float*)&view_);
-		var_g_proj_mat->SetMatrix((float*)&proj_);
-
 		Matrix inv_proj = Inverse(proj_);
-		var_g_inv_proj_mat->SetMatrix((float*)&inv_proj);
+
+		SetEffectVar(effect, "g_model_mat", world_);
+		SetEffectVar(effect, "g_view_mat", view_);
+		SetEffectVar(effect, "g_proj_mat", proj_);
+		SetEffectVar(effect, "g_inv_proj_mat", inv_proj);
 	}
 
 	void Camera::LookAt(Vector3f pos, Vector3f target, Vector3f up)

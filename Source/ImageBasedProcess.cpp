@@ -36,24 +36,23 @@ namespace zeta
 
 	OnePassPostProcess::~OnePassPostProcess()
 	{
-		effect_.reset();
 	}
 
-	void OnePassPostProcess::FX(ID3DX11EffectPtr effect, ID3DX11EffectTechnique* tech, ID3DX11EffectPass* pass)
+	void OnePassPostProcess::FX(ID3DX11Effect* effect, ID3DX11EffectTechnique* tech, ID3DX11EffectPass* pass)
 	{
 		effect_ = effect;
 		tech_ = tech;
 		pass_ = pass;
 	}
 
-	ID3DX11EffectPtr OnePassPostProcess::Effect()
+	ID3DX11Effect* OnePassPostProcess::Effect()
 	{
 		return effect_;
 	}
 
 	void OnePassPostProcess::LoadFX(std::string fx_file, std::string tech_name, std::string pass_name)
 	{
-		ID3DX11EffectPtr effect = MakeCOMPtr(Renderer::Instance().LoadEffect(fx_file));
+		ID3DX11Effect* effect = Renderer::Instance().GetEffect(fx_file);
 		ID3DX11EffectTechnique* tech = effect->GetTechniqueByName(tech_name.c_str());
 		ID3DX11EffectPass* pass = tech->GetPassByName(pass_name.c_str());
 		this->FX(effect, tech, pass);
@@ -66,11 +65,10 @@ namespace zeta
 
 		for (size_t i = 0; i != input_fbs_.size(); i++)
 		{
-			auto var_g_tex = effect_->GetVariableByName(input_pin_names_[i].c_str())->AsShaderResource();
-			var_g_tex->SetResource(input_fbs_[i]->RetriveSRV(input_srv_indexs_[i]));
+			SetEffectVar(effect_, input_pin_names_[i].c_str(), input_fbs_[i]->RetriveSRV(input_srv_indexs_[i]));
 		}
 
-		Renderer::Instance().Quad()->Render(effect_.get(), pass_);
+		Renderer::Instance().Quad()->Render(effect_, pass_);
 	}
 
 	SumLumPostProcess::SumLumPostProcess()
@@ -87,10 +85,8 @@ namespace zeta
 	{
 		this->CalcSampleOffsets(output_fb_->Width(), output_fb_->Height());
 
-		auto var_g_sample_offset1 = effect_->GetVariableByName("g_sample_offset1")->AsVector();
-		auto var_g_sample_offset2 = effect_->GetVariableByName("g_sample_offset2")->AsVector();
-		var_g_sample_offset1->SetFloatVector((float*)&samples_offset1_);
-		var_g_sample_offset2->SetFloatVector((float*)&samples_offset2_);
+		SetEffectVar(effect_, "g_sample_offset1", samples_offset1_);
+		SetEffectVar(effect_, "g_sample_offset2", samples_offset2_);
 
 		OnePassPostProcess::Apply();
 	}
@@ -144,10 +140,8 @@ namespace zeta
 	{
 		output_fb_ = adapted_texs_[!last_index_];
 
-		auto var_g_last_lum_tex = effect_->GetVariableByName("g_last_lum_tex")->AsShaderResource();
-		var_g_last_lum_tex->SetResource(adapted_texs_[last_index_]->RetriveRTShaderResourceView(0));
-		auto var_g_frame_delta = effect_->GetVariableByName("g_frame_delta")->AsScalar();
-		var_g_frame_delta->SetFloat((float)Renderer::Instance().FrameTime());
+		SetEffectVar(effect_, "g_last_lum_tex", adapted_texs_[last_index_]->RetriveRTShaderResourceView(0));
+		SetEffectVar(effect_, "g_frame_delta", (float)Renderer::Instance().FrameTime());
 
 		last_index_ = !last_index_;
 
@@ -266,14 +260,9 @@ namespace zeta
 
 	void SeparableGaussianFilterPostProcess::Apply()
 	{
-		auto var_g_tex_size = effect_->GetVariableByName("g_tex_size")->AsVector();
-		var_g_tex_size->SetFloatVector((float*)(&tex_size_));
-
-		auto var_g_color_weight = effect_->GetVariableByName("g_color_weight")->AsScalar();
-		var_g_color_weight->SetFloatArray(color_weight_.data(), 0, 8);
-
-		auto var_g_tc_offset = effect_->GetVariableByName("g_tc_offset")->AsScalar();
-		var_g_tc_offset->SetFloatArray(tc_offset_.data(), 0, 8);
+		SetEffectVar(effect_, "g_tex_size", tex_size_);
+		SetEffectVarScalar(effect_, "g_color_weight", color_weight_.data(), (int)color_weight_.size());
+		SetEffectVarScalar(effect_, "g_tc_offset", tc_offset_.data(), (int)tc_offset_.size());
 
 		OnePassPostProcess::Apply();
 	}
@@ -562,9 +551,8 @@ namespace zeta
 	{
 		copy_rgbl_->Apply();
 
-		auto var_g_inv_width_height = fxaa_->Effect()->GetVariableByName("g_inv_width_height")->AsVector();
 		Vector2f inv_width_height(1.0f / fb_->Width(), 1.0f / fb_->Height());
-		var_g_inv_width_height->SetFloatVector((float*)(&inv_width_height));
+		SetEffectVar(fxaa_->Effect(), "g_inv_width_height", inv_width_height);
 
 		fxaa_->Apply();
 	}

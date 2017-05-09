@@ -36,7 +36,7 @@ namespace zeta
 
 		QuadRenderablePtr Quad();
 
-		ID3DX11Effect* LoadEffect(std::string file_path);
+		ID3DX11Effect* GetEffect(std::string file_path);
 
 		IDXGISwapChain1* DXGISwapChain();
 
@@ -78,7 +78,8 @@ namespace zeta
 		FrameBufferPtr fxaa_fb_;
 		FrameBufferPtr srgb_fb_;
 
-		ID3DX11EffectPtr dr_effect_;
+		std::map<std::string, ID3DX11EffectPtr> effects_;
+
 		OnePassPostProcessPtr srgb_pp_;
 		HDRPostProcessPtr hdr_pp_;
 		FXAAPostProcessPtr fxaa_pp_;

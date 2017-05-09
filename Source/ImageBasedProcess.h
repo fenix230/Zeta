@@ -34,13 +34,13 @@ namespace zeta
 		virtual ~OnePassPostProcess();
 
 		void LoadFX(std::string fx_file, std::string tech_name, std::string pass_name);
-		void FX(ID3DX11EffectPtr effect, ID3DX11EffectTechnique* tech, ID3DX11EffectPass* pass);
-		ID3DX11EffectPtr Effect();
+		void FX(ID3DX11Effect* effect, ID3DX11EffectTechnique* tech, ID3DX11EffectPass* pass);
+		ID3DX11Effect* Effect();
 
 		virtual void Apply() override;
 
 	protected:
-		ID3DX11EffectPtr effect_;
+		ID3DX11Effect* effect_;
 		ID3DX11EffectTechnique* tech_;
 		ID3DX11EffectPass* pass_;
 	};

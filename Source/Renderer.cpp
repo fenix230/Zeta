@@ -85,10 +85,12 @@ namespace zeta
 		quad_.reset();
 		skybox_.reset();
 
-		dr_effect_.reset();
 		srgb_pp_.reset();
 		hdr_pp_.reset();
 		fxaa_pp_.reset();
+
+		effects_.clear();
+
 		d3d_imm_ctx_.reset();
 		d3d_device_.reset();
 
@@ -157,7 +159,7 @@ namespace zeta
 
 		quad_ = std::make_shared<QuadRenderable>();
 
-		dr_effect_ = MakeCOMPtr(this->LoadEffect("Shader/DeferredRendering.fx"));
+		this->GetEffect("Shader/DeferredRendering.fx");
 
 		hdr_pp_ = std::make_shared<HDRPostProcess>();
 
@@ -270,8 +272,14 @@ namespace zeta
 		fxaa_pp_->Initialize(width_, height_);
 	}
 
-	ID3DX11Effect* Renderer::LoadEffect(std::string file_path)
+	ID3DX11Effect* Renderer::GetEffect(std::string file_path)
 	{
+		auto pos = effects_.find(file_path);
+		if (pos != effects_.end())
+		{
+			return pos->second.get();
+		}
+
 		std::wstring wfile_path = ToW(file_path);
 
 		ID3DX11Effect* d3d_effect = nullptr;
@@ -292,6 +300,7 @@ namespace zeta
 		}
 		THROW_FAILED(hr);
 
+		effects_[file_path] = MakeCOMPtr(d3d_effect);
 		return d3d_effect;
 	}
 
@@ -332,7 +341,9 @@ namespace zeta
 
 	void Renderer::Frame()
 	{
-		ID3DX11EffectTechnique* tech = dr_effect_->GetTechniqueByName("DeferredRendering");
+		ID3DX11Effect* dr_effect = this->GetEffect("Shader/DeferredRendering.fx");
+
+		ID3DX11EffectTechnique* tech = dr_effect->GetTechniqueByName("DeferredRendering");
 
 		//GBuffer pass
 		ID3DX11EffectPass* pass = tech->GetPassByName("GBuffer");
@@ -340,10 +351,10 @@ namespace zeta
 		gbuffer_fb_->Clear();
 		gbuffer_fb_->Bind();
 
-		cam_->Bind(dr_effect_.get());
+		cam_->Bind(dr_effect);
 		for (auto i : rs_)
 		{
-			i->Render(dr_effect_.get(), pass);
+			i->Render(dr_effect, pass);
 		}
 
 		//Linear depth pass
@@ -352,54 +363,48 @@ namespace zeta
 		linear_depth_fb_->Clear();
 		linear_depth_fb_->Bind();
 
-		auto var_g_pp_tex = dr_effect_->GetVariableByName("g_tex")->AsShaderResource();
-		auto var_g_near_q_far = dr_effect_->GetVariableByName("g_near_q_far")->AsVector();
-
-		var_g_pp_tex->SetResource(gbuffer_fb_->RetriveDSShaderResourceView());
-
 		float q = cam_->far_plane_ / (cam_->far_plane_ - cam_->near_plane_);
 		Vector4f near_q_far(cam_->near_plane_ * q, q, cam_->far_plane_, 1 / cam_->far_plane_);
-		var_g_near_q_far->SetFloatVector((float*)&near_q_far);
 
-		quad_->Render(dr_effect_.get(), pass);
+		SetEffectVar(dr_effect, "g_tex", gbuffer_fb_->RetriveDSShaderResourceView());
+		SetEffectVar(dr_effect, "g_near_q_far", near_q_far);
+
+		quad_->Render(dr_effect, pass);
 
 		//Lighting-kind passes
 		lighting_fb_->Clear();
 		lighting_fb_->Bind();
 
-		auto var_g_buffer_tex = dr_effect_->GetVariableByName("g_buffer_tex")->AsShaderResource();
-		auto var_g_buffer_1_tex = dr_effect_->GetVariableByName("g_buffer_1_tex")->AsShaderResource();
-		var_g_buffer_tex->SetResource(gbuffer_fb_->RetriveRTShaderResourceView(0));
-		var_g_buffer_1_tex->SetResource(gbuffer_fb_->RetriveRTShaderResourceView(1));
+		SetEffectVar(dr_effect, "g_buffer_tex", gbuffer_fb_->RetriveRTShaderResourceView(0));
+		SetEffectVar(dr_effect, "g_buffer_1_tex", gbuffer_fb_->RetriveRTShaderResourceView(1));
 
 		//Ambient lighting pass
 		pass = tech->GetPassByName("AmbientLighting");
 
-		ambient_light_->Bind(dr_effect_.get(), cam_.get());
+		ambient_light_->Bind(dr_effect, cam_.get());
 
-		quad_->Render(dr_effect_.get(), pass);
+		quad_->Render(dr_effect, pass);
 
 		//Direction lighting pass for each
 		pass = tech->GetPassByName("DirectionLighting");
 
 		for (auto i : dir_lights_)
 		{
-			i->Bind(dr_effect_.get(), cam_.get());
+			i->Bind(dr_effect, cam_.get());
 
-			quad_->Render(dr_effect_.get(), pass);
+			quad_->Render(dr_effect, pass);
 		}
 
 		//Spot lighting pass for each
 		pass = tech->GetPassByName("SpotLighting");
 
-		auto var_g_depth_tex = dr_effect_->GetVariableByName("g_depth_tex")->AsShaderResource();
-		var_g_depth_tex->SetResource(linear_depth_fb_->RetriveRTShaderResourceView(0));
+		SetEffectVar(dr_effect, "g_depth_tex", linear_depth_fb_->RetriveRTShaderResourceView(0));
 
 		for (auto i : spot_lights_)
 		{
-			i->Bind(dr_effect_.get(), cam_.get());
+			i->Bind(dr_effect, cam_.get());
 
-			quad_->Render(dr_effect_.get(), pass);
+			quad_->Render(dr_effect, pass);
 		}
 
 		//Copy depth pass
@@ -408,18 +413,17 @@ namespace zeta
 
 		pass = tech->GetPassByName("CopyShadingDepth");
 
-		auto var_g_shading_tex = dr_effect_->GetVariableByName("g_shading_tex")->AsShaderResource();
-		var_g_shading_tex->SetResource(lighting_fb_->RetriveRTShaderResourceView(0));
-		var_g_depth_tex->SetResource(gbuffer_fb_->RetriveDSShaderResourceView());
+		SetEffectVar(dr_effect, "g_shading_tex", lighting_fb_->RetriveRTShaderResourceView(0));
+		SetEffectVar(dr_effect, "g_depth_tex", gbuffer_fb_->RetriveDSShaderResourceView());
 
-		quad_->Render(dr_effect_.get(), pass);
+		quad_->Render(dr_effect, pass);
 
 		//SkyBox pass
 		if (skybox_)
 		{
 			pass = tech->GetPassByName("SkyBoxShading");
 
-			skybox_->Render(dr_effect_.get(), pass);
+			skybox_->Render(dr_effect, pass);
 		}
 
 		//HDR post process

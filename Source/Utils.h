@@ -1,5 +1,6 @@
 #pragma once
 #include <DirectXMath.h>
+#include <algorithm>
 
 
 namespace zeta
@@ -91,6 +92,8 @@ namespace zeta
 
 		XMVECTOR XMV() const;
 		Vector2f& XMV(const XMVECTOR& v);
+
+		static const int elem_count = 2;
 	};
 	DEFINE_VECTOR_OPERATORS(Vector2f);
 
@@ -103,6 +106,8 @@ namespace zeta
 
 		XMVECTOR XMV() const;
 		Vector3f& XMV(const XMVECTOR& v);
+
+		static const int elem_count = 3;
 	};
 	DEFINE_VECTOR_OPERATORS(Vector3f);
 
@@ -117,6 +122,8 @@ namespace zeta
 
 		XMVECTOR XMV() const;
 		Vector4f& XMV(const XMVECTOR& v);
+
+		static const int elem_count = 4;
 	};
 	DEFINE_VECTOR_OPERATORS(Vector4f);
 
@@ -163,6 +170,29 @@ namespace zeta
 
 	std::string CombineFileLine(std::string const & file, int line);
 
+	float LinearToSRGBF(float linear);
+	float SRGBToLinearF(float srgb);
+
+	template<class V>
+	V LinearToSRGB(const V& v1)
+	{
+		V v2;
+		const float* p1 = (float*)&v1;
+		float* p2 = (float*)&v2;
+		std::transform(p1, p1 + V::elem_count, p2, LinearToSRGBF);
+		return v2;
+	}
+
+	template<class V>
+	V SRGBToLinear(const V& v1)
+	{
+		V v2;
+		const float* p1 = (float*)&v1;
+		float* p2 = (float*)&v2;
+		std::transform(p1, p1 + V::elem_count, p2, SRGBToLinearF);
+		return v2;
+	}
+
 	template <typename T>
 	inline std::shared_ptr<T> MakeCOMPtr(T* p)
 	{
@@ -189,6 +219,34 @@ namespace zeta
 		double start_time_;
 	};
 
+
+	void SetEffectVarShaderResource(ID3DX11Effect* effect, const char* var_name, ID3D11ShaderResourceView *var);
+
+	void SetEffectVarScalar(ID3DX11Effect* effect, const char* var_name, float var);
+	void SetEffectVarScalar(ID3DX11Effect* effect, const char* var_name, const float* var, uint32_t var_count);
+	void SetEffectVarScalar(ID3DX11Effect* effect, const char* var_name, int var);
+	void SetEffectVarScalar(ID3DX11Effect* effect, const char* var_name, const int* var, uint32_t var_count);
+	void SetEffectVarScalar(ID3DX11Effect* effect, const char* var_name, bool var);
+	void SetEffectVarScalar(ID3DX11Effect* effect, const char* var_name, const bool* var, uint32_t var_count);
+
+	void SetEffectVarVector(ID3DX11Effect* effect, const char* var_name, const bool* var);
+	void SetEffectVarVector(ID3DX11Effect* effect, const char* var_name, const bool* var, uint32_t var_count);
+	void SetEffectVarVector(ID3DX11Effect* effect, const char* var_name, const int* var);
+	void SetEffectVarVector(ID3DX11Effect* effect, const char* var_name, const int* var, uint32_t var_count);
+	void SetEffectVarVector(ID3DX11Effect* effect, const char* var_name, const float* var);
+	void SetEffectVarVector(ID3DX11Effect* effect, const char* var_name, const float* var, uint32_t var_count);
+
+	void SetEffectVarMatrix(ID3DX11Effect* effect, const char* var_name, const float* var);
+	void SetEffectVarMatrix(ID3DX11Effect* effect, const char* var_name, const float* var, uint32_t var_count);
+
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, ID3D11ShaderResourceView *var);
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, bool var);
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, int var);
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, float var);
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, const Vector2f& var);
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, const Vector3f& var);
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, const Vector4f& var);
+	void SetEffectVar(ID3DX11Effect* effect, const char* var_name, const Matrix& var);
 }
 
 

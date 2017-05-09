@@ -230,7 +230,7 @@ void LoadTestObj()
 	app.Create("TestObj", width, height);
 
 	CameraPtr cam = std::make_shared<Camera>();
-	Vector3f eye(5, 5, 5), at(0, 0, 0), up(0, 1, 0);
+	Vector3f eye(2, 2, 2), at(0, 0, 0), up(0, 1, 0);
 	cam->LookAt(eye, at, up);
 	cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
 	Renderer::Instance().SetCamera(cam);

@@ -69,7 +69,12 @@ namespace zeta
 
 			ID3D11Resource* d3d_tex_res = nullptr;
 			ID3D11ShaderResourceView* d3d_tex_srv = nullptr;
-			if (SUCCEEDED(CreateDDSTextureFromFile(Renderer::Instance().D3DDevice(), wfile_path.c_str(), &d3d_tex_res, &d3d_tex_srv)))
+
+			if (SUCCEEDED(
+				CreateDDSTextureFromFileEx(Renderer::Instance().D3DDevice(), nullptr, wfile_path.c_str(), 0,
+				D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0, true,
+				&d3d_tex_res, &d3d_tex_srv))
+				)
 			{
 				d3d_tex_ = MakeCOMPtr(d3d_tex_res);
 				d3d_srv_ = MakeCOMPtr(d3d_tex_srv);
@@ -139,15 +144,19 @@ namespace zeta
 
 			auto var_g_albedo_map_enabled = effect->GetVariableByName("g_albedo_map_enabled")->AsScalar();
 			var_g_albedo_map_enabled->SetBool(true);
+
+			auto var_g_albedo_clr = effect->GetVariableByName("g_albedo_clr")->AsVector();
+			Vector3f albedo_clr(0.58f, 0.58f, 0.58f);
+			var_g_albedo_clr->SetFloatVector((float*)&albedo_clr);
 		}
 		else
 		{
 			auto var_g_albedo_map_enabled = effect->GetVariableByName("g_albedo_map_enabled")->AsScalar();
 			var_g_albedo_map_enabled->SetBool(false);
-		}
 
-		auto var_g_albedo_clr = effect->GetVariableByName("g_albedo_clr")->AsVector();
-		var_g_albedo_clr->SetFloatVector((float*)&kd_);
+			auto var_g_albedo_clr = effect->GetVariableByName("g_albedo_clr")->AsVector();
+			var_g_albedo_clr->SetFloatVector((float*)&kd_);
+		}
 
 		auto var_g_metalness_clr = effect->GetVariableByName("g_metalness_clr")->AsVector();
 		Vector2f metalness_clr(0.02f, 0);

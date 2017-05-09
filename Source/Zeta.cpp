@@ -227,7 +227,7 @@ void LoadTestObj()
 	int height = 720;
 
 	Application app;
-	app.Create("Test", width, height);
+	app.Create("TestObj", width, height);
 
 	CameraPtr cam = std::make_shared<Camera>();
 	Vector3f eye(5, 5, 5), at(0, 0, 0), up(0, 1, 0);
@@ -254,11 +254,46 @@ void LoadTestObj()
 }
 
 
+void LoadSponza()
+{
+	int width = 1280;
+	int height = 720;
+
+	Application app;
+	app.Create("Sponza", width, height);
+
+	CameraPtr cam = std::make_shared<Camera>();
+	Vector3f eye(-14.5f, 18, -3), at(-13.6f, 17.55f, -2.8f), up(0, 1, 0);
+	cam->LookAt(eye, at, up);
+	cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
+	Renderer::Instance().SetCamera(cam);
+
+	AmbientLightPtr al = std::make_shared<AmbientLight>();
+	al->color_ = Vector3f(0.1f, 0.1f, 0.1f);
+	Renderer::Instance().SetAmbientLight(al);
+
+	SpotLightPtr sl = std::make_shared<SpotLight>();
+	sl->pos_ = Vector3f(0, 12, -4.8f);
+	sl->dir_ = Vector3f(0, 0, 1);
+	sl->color_ = Vector3f(6.0f, 5.88f, 4.38f);
+	sl->falloff_ = Vector3f(1, 0.1f, 0);
+	sl->range_ = 100;
+	sl->inner_ang_ = XM_PI / 4;
+	sl->outter_ang_ = XM_PI / 6;
+	Renderer::Instance().AddSpotLight(sl);
+
+	LoadAssimpStaticMesh("Model/Sponza/sponza.obj");
+
+	app.Run();
+}
+
+
 int main()
 {
 	try
 	{
-		LoadTestObj();
+		//LoadTestObj();
+		LoadSponza();
 	}
 	catch (const std::exception& e)
 	{

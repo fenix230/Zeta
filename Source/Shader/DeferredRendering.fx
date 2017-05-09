@@ -27,7 +27,9 @@ float3		g_light_color;
 float4		g_light_falloff_range;
 float2		g_spot_light_cos_cone;
 
-Texture2D	g_pp_tex;
+Texture2D	g_tex;
+float4		g_near_q_far;
+
 
 
 #define MAX_SHININESS 8192.0f
@@ -545,6 +547,21 @@ PP_VSO PostProcessVS(float4 pos : POSITION)
 }
 
 
+float NonLinearDepthToLinear(float depth, float near_mul_q, float q)
+{
+	return near_mul_q / (q - depth);
+}
+
+
+float4 LinearDepthPS(PP_VSO ipt) : SV_Target
+{
+	float ld = NonLinearDepthToLinear(g_tex.Sample(PointSampler, ipt.tc).r,
+	g_near_q_far.x, g_near_q_far.y);
+
+	return float4(ld, ld, ld, ld);
+}
+
+
 struct COPY_SHADING_DEPTH_PSO
 {
 	float4 clr : SV_Target;
@@ -573,6 +590,16 @@ technique11 DeferredRendering
 		SetRasterizerState(BackSolidRS);
 		SetDepthStencilState(DepthEnalbedDSS, 0);
 		SetBlendState(DisabledBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
+	}
+
+	pass LinearDepth
+	{
+		SetVertexShader(CompileShader(vs_5_0, PostProcessVS()));
+		SetPixelShader(CompileShader(ps_5_0, LinearDepthPS()));
+
+		SetRasterizerState(BackSolidRS);
+		SetDepthStencilState(LightingDSS, 0);
+		SetBlendState(LightingBS, float4(0, 0, 0, 0), 0xFFFFFFFF);
 	}
 
 	pass AmbientLighting

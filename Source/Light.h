@@ -23,4 +23,19 @@ namespace zeta
 		Vector3f color_;
 	};
 
+
+	class SpotLight
+	{
+	public:
+		void Bind(ID3DX11Effect* d3d_effect, Camera* cam);
+
+		Vector3f pos_;
+		Vector3f dir_;
+		Vector3f color_;
+		Vector3f falloff_;
+		float range_;
+		float inner_ang_;
+		float outter_ang_;
+	};
+
 }

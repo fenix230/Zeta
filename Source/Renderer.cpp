@@ -74,6 +74,7 @@ namespace zeta
 		}
 
 		gbuffer_fb_.reset();
+		linear_depth_fb_.reset();
 		lighting_fb_.reset();
 		shading_fb_.reset();
 		srgb_fb_.reset();
@@ -180,6 +181,7 @@ namespace zeta
 		d3d_imm_ctx_->OMSetDepthStencilState(0, 0);
 
 		gbuffer_fb_.reset();
+		linear_depth_fb_.reset();
 		lighting_fb_.reset();
 		shading_fb_.reset();
 		srgb_fb_.reset();
@@ -229,6 +231,9 @@ namespace zeta
 		//Frame buffers
 		gbuffer_fb_ = std::make_shared<FrameBuffer>();
 		gbuffer_fb_->Create(width_, height_, 2);
+
+		linear_depth_fb_ = std::make_shared<FrameBuffer>(DXGI_FORMAT_R32_FLOAT);
+		linear_depth_fb_->Create(width_, height_, 1);
 
 		lighting_fb_ = std::make_shared<FrameBuffer>();
 		lighting_fb_->Create(width_, height_, 1);
@@ -318,6 +323,11 @@ namespace zeta
 		dir_lights_.push_back(dl);
 	}
 
+	void Renderer::AddSpotLight(SpotLightPtr sl)
+	{
+		spot_lights_.push_back(sl);
+	}
+
 	void Renderer::Frame()
 	{
 		ID3DX11EffectTechnique* tech = dr_effect_->GetTechniqueByName("DeferredRendering");
@@ -333,6 +343,23 @@ namespace zeta
 		{
 			i->Render(dr_effect_.get(), pass);
 		}
+
+		//Linear depth pass
+		pass = tech->GetPassByName("LinearDepth");
+
+		linear_depth_fb_->Clear();
+		linear_depth_fb_->Bind();
+
+		auto var_g_pp_tex = dr_effect_->GetVariableByName("g_tex")->AsShaderResource();
+		auto var_g_near_q_far = dr_effect_->GetVariableByName("g_near_q_far")->AsVector();
+
+		var_g_pp_tex->SetResource(gbuffer_fb_->RetriveDSShaderResourceView());
+
+		float q = cam_->far_plane_ / (cam_->far_plane_ - cam_->near_plane_);
+		Vector4f near_q_far(cam_->near_plane_ * q, q, cam_->far_plane_, 1 / cam_->far_plane_);
+		var_g_near_q_far->SetFloatVector((float*)&near_q_far);
+
+		quad_->Render(dr_effect_.get(), pass);
 
 		//Lighting-kind passes
 		lighting_fb_->Clear();
@@ -360,6 +387,19 @@ namespace zeta
 			quad_->Render(dr_effect_.get(), pass);
 		}
 
+		//Spot lighting pass for each
+		pass = tech->GetPassByName("SpotLighting");
+
+		auto var_g_depth_tex = dr_effect_->GetVariableByName("g_depth_tex")->AsShaderResource();
+		var_g_depth_tex->SetResource(linear_depth_fb_->RetriveRTShaderResourceView(0));
+
+		for (auto i : spot_lights_)
+		{
+			i->Bind(dr_effect_.get(), cam_.get());
+
+			quad_->Render(dr_effect_.get(), pass);
+		}
+
 		//Copy depth pass
 		shading_fb_->Clear();
 		shading_fb_->Bind();
@@ -368,7 +408,6 @@ namespace zeta
 
 		auto var_g_shading_tex = dr_effect_->GetVariableByName("g_shading_tex")->AsShaderResource();
 		var_g_shading_tex->SetResource(lighting_fb_->RetriveRTShaderResourceView(0));
-		auto var_g_depth_tex = dr_effect_->GetVariableByName("g_depth_tex")->AsShaderResource();
 		var_g_depth_tex->SetResource(gbuffer_fb_->RetriveDSShaderResourceView());
 
 		quad_->Render(dr_effect_.get(), pass);

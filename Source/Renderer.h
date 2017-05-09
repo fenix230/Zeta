@@ -26,6 +26,7 @@ namespace zeta
 
 		void SetAmbientLight(AmbientLightPtr al);
 		void AddDirectionLight(DirectionLightPtr dl);
+		void AddSpotLight(SpotLightPtr sl);
 
 		void Frame();
 
@@ -70,6 +71,7 @@ namespace zeta
 		ID3D11DeviceContextPtr d3d_imm_ctx_;
 
 		FrameBufferPtr gbuffer_fb_;
+		FrameBufferPtr linear_depth_fb_;
 		FrameBufferPtr lighting_fb_;
 		FrameBufferPtr shading_fb_;
 		FrameBufferPtr srgb_fb_;
@@ -89,6 +91,7 @@ namespace zeta
 
 		AmbientLightPtr ambient_light_;
 		std::vector<DirectionLightPtr> dir_lights_;
+		std::vector<SpotLightPtr> spot_lights_;
 
 		Timer timer_;
 		double frame_time_;

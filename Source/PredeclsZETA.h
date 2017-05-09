@@ -52,4 +52,7 @@ namespace zeta
 
 	class HDRPostProcess;
 	typedef std::shared_ptr<HDRPostProcess> HDRPostProcessPtr;
+
+	class FXAAPostProcess;
+	typedef std::shared_ptr<FXAAPostProcess> FXAAPostProcessPtr;
 }

@@ -46,6 +46,11 @@ namespace zeta
 		pass_ = pass;
 	}
 
+	ID3DX11EffectPtr OnePassPostProcess::Effect()
+	{
+		return effect_;
+	}
+
 	void OnePassPostProcess::LoadFX(std::string fx_file, std::string tech_name, std::string pass_name)
 	{
 		ID3DX11EffectPtr effect = MakeCOMPtr(Renderer::Instance().LoadEffect(fx_file));
@@ -183,36 +188,38 @@ namespace zeta
 			return;
 		}
 
-		std::array<FrameBufferPtr, 3> downsample_fbs;
-		std::array<FrameBufferPtr, 3> glow_fbs;
+		downsample_fbs_.clear();
+		glow_fbs_.clear();
+		downsample_fbs_.resize(3);
+		glow_fbs_.resize(3);
 
-		for (int i = 0; i != 3; i++)
+		for (size_t i = 0; i < downsample_fbs_.size(); i++)
 		{
-			downsample_fbs[i] = std::make_shared<FrameBuffer>(fmt);
-			downsample_fbs[i]->Create(width / (2 << i), height / (2 << i), 1);
+			downsample_fbs_[i] = std::make_shared<FrameBuffer>(fmt);
+			downsample_fbs_[i]->Create(width / (2 << i), height / (2 << i), 1);
 
-			glow_fbs[i] = std::make_shared<FrameBuffer>(fmt);
-			glow_fbs[i]->Create(width / (2 << i), height / (2 << i), 1);
+			glow_fbs_[i] = std::make_shared<FrameBuffer>(fmt);
+			glow_fbs_[i]->Create(width / (2 << i), height / (2 << i), 1);
 		}
 
 		bright_pass_downsampler_->SetInputDefault(fb);
-		bright_pass_downsampler_->SetOutput(downsample_fbs[0]);
+		bright_pass_downsampler_->SetOutput(downsample_fbs_[0]);
 
 		for (size_t i = 0; i != downsamplers_.size(); i++)
 		{
-			downsamplers_[i]->SetInputDefault(downsample_fbs[i]);
-			downsamplers_[i]->SetOutput(downsample_fbs[i + 1]);
+			downsamplers_[i]->SetInputDefault(downsample_fbs_[i]);
+			downsamplers_[i]->SetOutput(downsample_fbs_[i + 1]);
 		}
 
 		for (size_t i = 0; i != blurs_.size(); i++)
 		{
-			blurs_[i]->SetInputDefault(downsample_fbs[i]);
-			blurs_[i]->SetOutput(glow_fbs[i]);
+			blurs_[i]->SetInputDefault(downsample_fbs_[i]);
+			blurs_[i]->SetOutput(glow_fbs_[i]);
 		}
 
-		glow_merger_->SetInput(glow_fbs[0], "g_glow_tex_0", 0);
-		glow_merger_->SetInput(glow_fbs[1], "g_glow_tex_1", 0);
-		glow_merger_->SetInput(glow_fbs[2], "g_glow_tex_2", 0);
+		glow_merger_->SetInput(glow_fbs_[0], "g_glow_tex_0", 0);
+		glow_merger_->SetInput(glow_fbs_[1], "g_glow_tex_1", 0);
+		glow_merger_->SetInput(glow_fbs_[2], "g_glow_tex_2", 0);
 
 		FrameBufferPtr len_fb = std::make_shared<FrameBuffer>(fmt);
 		len_fb->Create(width / 2, height / 2, 1);
@@ -255,6 +262,22 @@ namespace zeta
 
 	}
 
+	void SeparableGaussianFilterPostProcess::Apply()
+	{
+		this->CalSampleOffsets(x_dir_ ? input_fbs_[0]->Width() : input_fbs_[0]->Height(), 3.0f);
+
+		auto var_g_tex_size = effect_->GetVariableByName("g_tex_size")->AsVector();
+		var_g_tex_size->SetFloatVector((float*)(&tex_size_));
+
+		auto var_g_color_weight = effect_->GetVariableByName("g_color_weight")->AsScalar();
+		var_g_color_weight->SetFloatArray(color_weight_.data(), 0, 8);
+
+		auto var_g_tc_offset = effect_->GetVariableByName("g_tc_offset")->AsScalar();
+		var_g_tc_offset->SetFloatArray(tc_offset_.data(), 0, 8);
+
+		OnePassPostProcess::Apply();
+	}
+
 	void SeparableGaussianFilterPostProcess::KernelRadius(int radius)
 	{
 		kernel_radius_ = radius;
@@ -274,8 +297,8 @@ namespace zeta
 
 	void SeparableGaussianFilterPostProcess::CalSampleOffsets(uint32_t tex_size, float deviation)
 	{
-		std::vector<float> color_weight(8, 0);
-		std::vector<float> tex_coord_offset(8, 0);
+		color_weight_.resize(8, 0);
+		tc_offset_.resize(8, 0);
 
 		std::vector<float> tmp_weights(kernel_radius_ * 2, 0);
 		std::vector<float> tmp_offset(kernel_radius_ * 2, 0);
@@ -308,19 +331,11 @@ namespace zeta
 			float const scale = tmp_weights[i * 2] + tmp_weights[i * 2 + 1];
 			float const frac = tmp_weights[i * 2] / scale;
 
-			tex_coord_offset[i] = (tmp_offset[i * 2] + (1 - frac)) * tu;
-			color_weight[i] = multiplier_ * scale;
+			tc_offset_[i] = (tmp_offset[i * 2] + (1 - frac)) * tu;
+			color_weight_[i] = multiplier_ * scale;
 		}
 
-		auto var_g_tex_size = effect_->GetVariableByName("g_tex_size")->AsVector();
-		Vector2f ts(static_cast<float>(tex_size), 1.0f / tex_size);
-		var_g_tex_size->SetFloatVector((float*)(&ts));
-
-		auto var_g_color_weight = effect_->GetVariableByName("g_color_weight")->AsScalar();
-		var_g_color_weight->SetFloatArray(color_weight.data(), 0, 8);
-
-		auto var_g_tc_offset = effect_->GetVariableByName("g_tc_offset")->AsScalar();
-		var_g_tc_offset->SetFloatArray(tex_coord_offset.data(), 0, 8);
+		tex_size_ = Vector2f(static_cast<float>(tex_size), 1.0f / tex_size);
 	}
 
 
@@ -494,6 +509,55 @@ namespace zeta
 
 		tone_mapping_->SetInput(image_stat_->GetOutput(), "g_lum_tex", 0);
 		tone_mapping_->Apply();
+	}
+
+	FXAAPostProcess::FXAAPostProcess()
+	{
+		copy_rgbl_ = std::make_shared<OnePassPostProcess>();
+		copy_rgbl_->LoadFX("Shader/FXAA.fx", "FXAA", "CopyRGBL");
+
+		fxaa_ = std::make_shared<OnePassPostProcess>();
+		fxaa_->LoadFX("Shader/FXAA.fx", "FXAA", "FXAA");
+	}
+
+	FXAAPostProcess::~FXAAPostProcess()
+	{
+
+	}
+
+	void FXAAPostProcess::SetInputDefault(FrameBufferPtr fb)
+	{
+		if (!fb_ || fb_->Width() != fb->Width() || fb_->Height() != fb->Height())
+		{
+			fb_ = std::make_shared<FrameBuffer>(fb->Format());
+			fb_->Create(fb->Width(), fb->Height(), 1);
+		}
+
+		copy_rgbl_->SetInputDefault(fb);
+		copy_rgbl_->SetOutput(fb_);
+
+		fxaa_->SetInputDefault(fb_);
+	}
+
+	void FXAAPostProcess::SetOutput(FrameBufferPtr fb)
+	{
+		fxaa_->SetOutput(fb);
+	}
+
+	FrameBufferPtr FXAAPostProcess::GetOutput()
+	{
+		return fxaa_->GetOutput();
+	}
+
+	void FXAAPostProcess::Apply()
+	{
+		copy_rgbl_->Apply();
+
+		auto var_g_inv_width_height = fxaa_->Effect()->GetVariableByName("g_inv_width_height")->AsVector();
+		Vector2f inv_width_height(1.0f / fb_->Width(), 1.0f / fb_->Height());
+		var_g_inv_width_height->SetFloatVector((float*)(&inv_width_height));
+
+		fxaa_->Apply();
 	}
 
 }

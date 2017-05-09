@@ -78,6 +78,7 @@ namespace zeta
 		shading_fb_.reset();
 		srgb_fb_.reset();
 		hdr_fb_.reset();
+		fxaa_fb_.reset();
 
 		quad_.reset();
 		skybox_.reset();
@@ -85,6 +86,7 @@ namespace zeta
 		dr_effect_.reset();
 		srgb_pp_.reset();
 		hdr_pp_.reset();
+		fxaa_pp_.reset();
 		d3d_imm_ctx_.reset();
 		d3d_device_.reset();
 
@@ -160,6 +162,8 @@ namespace zeta
 		srgb_pp_->LoadFX("Shader/SRGBCorrection.fx", "SRGBCorrection", "SRGBCorrection");
 		
 		hdr_pp_ = std::make_shared<HDRPostProcess>();
+
+		fxaa_pp_ = std::make_shared<FXAAPostProcess>();
 	}
 
 	void Renderer::Resize(int width, int height)
@@ -179,11 +183,12 @@ namespace zeta
 		lighting_fb_.reset();
 		shading_fb_.reset();
 		srgb_fb_.reset();
-		if (hdr_pp_)
-		{
-			hdr_pp_->SetOutput(nullptr);
-		}
 		hdr_fb_.reset();
+		fxaa_fb_.reset();
+		if (fxaa_pp_)
+		{
+			fxaa_pp_->SetOutput(nullptr);
+		}
 
 		//SwapChain
 		IDXGISwapChain1* dxgi_sc = nullptr;
@@ -234,11 +239,14 @@ namespace zeta
 		srgb_fb_ = std::make_shared<FrameBuffer>();
 		srgb_fb_->Create(width_, height_, 1);
 
+		hdr_fb_ = std::make_shared<FrameBuffer>();
+		hdr_fb_->Create(width_, height_, 1);
+
 		ID3D11Texture2D* frame_buffer = nullptr;
 		THROW_FAILED(dxgi_sc->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&frame_buffer));
 
-		hdr_fb_ = std::make_shared<FrameBuffer>();
-		hdr_fb_->Create(width_, height_, frame_buffer);
+		fxaa_fb_ = std::make_shared<FrameBuffer>();
+		fxaa_fb_->Create(width_, height_, frame_buffer);
 
 		frame_buffer->Release();
 		frame_buffer = nullptr;
@@ -374,21 +382,21 @@ namespace zeta
 		}
 
 		//SRGBCorrection post process
-		srgb_fb_->Clear();
-		srgb_fb_->Bind();
-
 		srgb_pp_->SetInputDefault(shading_fb_);
 		srgb_pp_->SetOutput(srgb_fb_);
 		srgb_pp_->Apply();
 
 		//HDR post process
-		hdr_fb_->Clear();
-		hdr_fb_->Bind();
-
 		hdr_pp_->SetInputDefault(srgb_fb_);
 		hdr_pp_->SetOutput(hdr_fb_);
 		hdr_pp_->Apply();
 
+		//FXAA post process
+		fxaa_pp_->SetInputDefault(hdr_fb_);
+		fxaa_pp_->SetOutput(fxaa_fb_);
+		fxaa_pp_->Apply();
+
+		//Present
 		gi_swap_chain_1_->Present(0, 0);
 
 		this->UpdateStat();

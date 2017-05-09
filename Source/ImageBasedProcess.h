@@ -34,6 +34,7 @@ namespace zeta
 
 		void LoadFX(std::string fx_file, std::string tech_name, std::string pass_name);
 		void FX(ID3DX11EffectPtr effect, ID3DX11EffectTechnique* tech, ID3DX11EffectPass* pass);
+		ID3DX11EffectPtr Effect();
 
 		virtual void Apply() override;
 
@@ -93,6 +94,9 @@ namespace zeta
 
 	private:
 		int bufw_, bufh_;
+		std::vector<FrameBufferPtr> downsample_fbs_;
+		std::vector<FrameBufferPtr> glow_fbs_;
+
 		OnePassPostProcessPtr bright_pass_downsampler_;
 		std::array<OnePassPostProcessPtr, 2> downsamplers_;
 		std::array<ImageBasedProcessPtr, 3> blurs_;
@@ -107,6 +111,8 @@ namespace zeta
 		SeparableGaussianFilterPostProcess(bool x_dir);
 		virtual ~SeparableGaussianFilterPostProcess();
 
+		virtual void Apply() override;
+
 		void KernelRadius(int radius);
 		void Multiplier(float multiplier);
 
@@ -118,6 +124,9 @@ namespace zeta
 		int kernel_radius_;
 		float multiplier_;
 		bool x_dir_;
+		Vector2f tex_size_;
+		std::vector<float> color_weight_;
+		std::vector<float> tc_offset_;
 	};
 
 
@@ -184,6 +193,26 @@ namespace zeta
 		ImageStatPostProcessPtr image_stat_;
 		LensEffectsPostProcessPtr lens_effects_;
 		OnePassPostProcessPtr tone_mapping_;
+	};
+
+
+	class FXAAPostProcess
+		: public ImageBasedProcess
+	{
+	public:
+		FXAAPostProcess();
+		virtual ~FXAAPostProcess();
+
+		virtual void SetInput(FrameBufferPtr fb, std::string pin_name, int srv_index) override {}
+		virtual void SetInputDefault(FrameBufferPtr fb) override;
+		virtual void SetOutput(FrameBufferPtr fb) override;
+		virtual FrameBufferPtr GetOutput() override;
+		virtual void Apply() override;
+
+	private:
+		OnePassPostProcessPtr copy_rgbl_;
+		OnePassPostProcessPtr fxaa_;
+		FrameBufferPtr fb_;
 	};
 
 }

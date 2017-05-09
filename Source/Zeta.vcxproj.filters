@@ -118,5 +118,8 @@
     <FxCompile Include="Shader\HDR.fx">
       <Filter>Shader</Filter>
     </FxCompile>
+    <FxCompile Include="Shader\FXAA.fx">
+      <Filter>Shader</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

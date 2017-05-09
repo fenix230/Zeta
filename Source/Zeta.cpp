@@ -221,42 +221,49 @@ void LoadAssimpStaticMesh(std::string file_path, float scale = 1, bool inverse_z
 }
 
 
+void LoadTestObj()
+{
+	int width = 1280;
+	int height = 720;
+
+	Application app;
+	app.Create("Test", width, height);
+
+	CameraPtr cam = std::make_shared<Camera>();
+	Vector3f eye(5, 5, 5), at(0, 0, 0), up(0, 1, 0);
+	cam->LookAt(eye, at, up);
+	cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
+	Renderer::Instance().SetCamera(cam);
+
+	SkyBoxRenderablePtr skybox = std::make_shared<SkyBoxRenderable>();
+	skybox->CreateCubeMap("Texture/CubeMap/BlueSky.dds");
+	Renderer::Instance().SetSkyBox(skybox);
+
+	AmbientLightPtr al = std::make_shared<AmbientLight>();
+	al->color_ = Vector3f(0.1f, 0.1f, 0.1f);
+	Renderer::Instance().SetAmbientLight(al);
+
+	DirectionLightPtr dl = std::make_shared<DirectionLight>();
+	dl->color_ = Vector3f(0.85f, 0.85f, 0.85f);
+	dl->dir_ = Vector3f(cam->eye_pos_ - cam->look_at_);
+	Renderer::Instance().AddDirectionLight(dl);
+
+	LoadAssimpStaticMesh("Model/testObj/testObj.obj");
+
+	app.Run();
+}
+
+
 int main()
 {
 	try
 	{
-		int width = 1280;
-		int height = 720;
-
-		Application app;
-		app.Create("Test", width, height);
-
-		CameraPtr cam = std::make_shared<Camera>();
-		Vector3f eye(2, 12, 2), at(0, 0, 0), up(0, 1, 0);
-		cam->LookAt(eye, at, up);
-		cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
-		Renderer::Instance().SetCamera(cam);
-
-		SkyBoxRenderablePtr skybox = std::make_shared<SkyBoxRenderable>();
-		skybox->CreateCubeMap("Texture/CubeMap/BlueSky.dds");
-		Renderer::Instance().SetSkyBox(skybox);
-
-		AmbientLightPtr al = std::make_shared<AmbientLight>();
-		al->color_ = Vector3f(0.1f, 0.1f, 0.1f);
-		Renderer::Instance().SetAmbientLight(al);
-
-		DirectionLightPtr dl = std::make_shared<DirectionLight>();
-		dl->color_ = Vector3f(0.85f, 0.85f, 0.85f);
-		dl->dir_ = Vector3f(cam->eye_pos_ - cam->look_at_);
-		Renderer::Instance().AddDirectionLight(dl);
-
-		LoadAssimpStaticMesh("Model/testObj/testObj.obj");
-
-		app.Run();
+		LoadTestObj();
 	}
 	catch (const std::exception& e)
 	{
-		std::string se = e.what();
+		::printf_s("throw : %s\n", e.what());
+		::getchar();
 	}
 
 	return 0;

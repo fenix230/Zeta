@@ -74,9 +74,9 @@ namespace zeta
 		FrameBufferPtr linear_depth_fb_;
 		FrameBufferPtr lighting_fb_;
 		FrameBufferPtr shading_fb_;
-		FrameBufferPtr srgb_fb_;
 		FrameBufferPtr hdr_fb_;
 		FrameBufferPtr fxaa_fb_;
+		FrameBufferPtr srgb_fb_;
 
 		ID3DX11EffectPtr dr_effect_;
 		OnePassPostProcessPtr srgb_pp_;

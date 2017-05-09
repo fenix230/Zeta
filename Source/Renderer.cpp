@@ -27,6 +27,7 @@ namespace zeta
 		width_ = 0;
 		height_ = 0;
 		frame_time_ = 0;
+		frame_count_ = 0;
 
 		if (!DynamicFuncInit_)
 		{
@@ -156,15 +157,16 @@ namespace zeta
 
 		quad_ = std::make_shared<QuadRenderable>();
 
-		this->Resize(width, height);
-
 		dr_effect_ = MakeCOMPtr(this->LoadEffect("Shader/DeferredRendering.fx"));
+
 		srgb_pp_ = std::make_shared<OnePassPostProcess>();
 		srgb_pp_->LoadFX("Shader/SRGBCorrection.fx", "SRGBCorrection", "SRGBCorrection");
-		
+
 		hdr_pp_ = std::make_shared<HDRPostProcess>();
 
 		fxaa_pp_ = std::make_shared<FXAAPostProcess>();
+
+		this->Resize(width, height);
 	}
 
 	void Renderer::Resize(int width, int height)
@@ -266,6 +268,9 @@ namespace zeta
 		viewport.TopLeftY = 0.0f;
 
 		d3d_imm_ctx_->RSSetViewports(1, &viewport);
+
+		hdr_pp_->Initialize(width_, height_);
+		fxaa_pp_->Initialize(width_, height_);
 	}
 
 	ID3DX11Effect* Renderer::LoadEffect(std::string file_path)
@@ -445,6 +450,7 @@ namespace zeta
 	{
 		frame_time_ = timer_.Elapsed();
 		timer_.Restart();
+		frame_count_++;
 	}
 
 	double Renderer::FrameTime()

@@ -10,6 +10,7 @@ namespace zeta
 	public:
 		virtual ~ImageBasedProcess() {}
 
+		virtual void Initialize(uint32_t width, uint32_t height) {}
 		virtual void SetInput(FrameBufferPtr fb, std::string pin_name, int srv_index);
 		virtual void SetInputDefault(FrameBufferPtr fb);
 		virtual void SetOutput(FrameBufferPtr fb);
@@ -70,6 +71,7 @@ namespace zeta
 		AdaptedLumPostProcess();
 		virtual ~AdaptedLumPostProcess();
 
+		virtual void Initialize(uint32_t width, uint32_t height) override;
 		virtual void SetOutput(FrameBufferPtr output_fb) override {}
 		virtual void Apply() override;
 
@@ -86,6 +88,7 @@ namespace zeta
 		LensEffectsPostProcess();
 		virtual ~LensEffectsPostProcess();
 
+		virtual void Initialize(uint32_t width, uint32_t height) override;
 		virtual void SetInput(FrameBufferPtr fb, std::string pin_name, int srv_index) override {}
 		virtual void SetInputDefault(FrameBufferPtr fb) override;
 		virtual void SetOutput(FrameBufferPtr output_fb) override {}
@@ -93,13 +96,13 @@ namespace zeta
 		virtual void Apply() override;
 
 	private:
-		int bufw_, bufh_;
 		std::vector<FrameBufferPtr> downsample_fbs_;
 		std::vector<FrameBufferPtr> glow_fbs_;
+		FrameBufferPtr len_fb_;
 
 		OnePassPostProcessPtr bright_pass_downsampler_;
 		std::array<OnePassPostProcessPtr, 2> downsamplers_;
-		std::array<ImageBasedProcessPtr, 3> blurs_;
+		std::array<BlurPostProcessPtr, 3> blurs_;
 		OnePassPostProcessPtr glow_merger_;
 	};
 
@@ -111,6 +114,7 @@ namespace zeta
 		SeparableGaussianFilterPostProcess(bool x_dir);
 		virtual ~SeparableGaussianFilterPostProcess();
 
+		virtual void Initialize(uint32_t width, uint32_t height) override;
 		virtual void Apply() override;
 
 		void KernelRadius(int radius);
@@ -140,6 +144,7 @@ namespace zeta
 		BlurPostProcess(std::string filter_name, int kernel_radius, float multiplier);
 		virtual ~BlurPostProcess();
 
+		virtual void Initialize(uint32_t width, uint32_t height) override;
 		virtual void SetInput(FrameBufferPtr fb, std::string pin_name, int srv_index) override {}
 		virtual void SetInputDefault(FrameBufferPtr fb) override;
 		virtual void SetOutput(FrameBufferPtr output_fb) override;
@@ -159,14 +164,13 @@ namespace zeta
 	public:
 		ImageStatPostProcess();
 		virtual ~ImageStatPostProcess();
-
+		
+		virtual void Initialize(uint32_t width, uint32_t height) override;
 		virtual void SetInput(FrameBufferPtr fb, std::string pin_name, int srv_index) override {}
 		virtual void SetInputDefault(FrameBufferPtr fb) override;
 		virtual void SetOutput(FrameBufferPtr fb) override {}
 		virtual FrameBufferPtr GetOutput() override;
 		virtual void Apply() override;
-
-		void CreateBufferChain(uint32_t width, uint32_t height);
 
 	protected:
 		OnePassPostProcessPtr sum_lums_1st_;
@@ -183,6 +187,7 @@ namespace zeta
 		HDRPostProcess();
 		virtual ~HDRPostProcess();
 
+		virtual void Initialize(uint32_t width, uint32_t height) override;
 		virtual void SetInput(FrameBufferPtr fb, std::string pin_name, int srv_index) override {}
 		virtual void SetInputDefault(FrameBufferPtr fb) override;
 		virtual void SetOutput(FrameBufferPtr fb) override;
@@ -203,6 +208,7 @@ namespace zeta
 		FXAAPostProcess();
 		virtual ~FXAAPostProcess();
 
+		virtual void Initialize(uint32_t width, uint32_t height) override;
 		virtual void SetInput(FrameBufferPtr fb, std::string pin_name, int srv_index) override {}
 		virtual void SetInputDefault(FrameBufferPtr fb) override;
 		virtual void SetOutput(FrameBufferPtr fb) override;

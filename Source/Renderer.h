@@ -95,6 +95,7 @@ namespace zeta
 
 		Timer timer_;
 		double frame_time_;
+		uint64_t frame_count_;
 	};
 
 }

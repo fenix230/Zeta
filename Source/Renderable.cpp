@@ -148,15 +148,16 @@ namespace zeta
 		else
 		{
 			Vector3f albedo_clr = SRGBToLinear(kd_);
+			albedo_clr = Vector3f(0.799102738f, 0.496932995f, 0.048171824f);
 
 			SetEffectVar(effect, "g_albedo_map_enabled", false);
 			SetEffectVar(effect, "g_albedo_clr", albedo_clr);
 		}
 
-		Vector2f metalness_clr(0.02f, 0);
+		Vector2f metalness_clr(0.92f, 0);
 		SetEffectVar(effect, "g_metalness_clr", metalness_clr);
 
-		Vector2f glossiness_clr(0.04f, 0);
+		Vector2f glossiness_clr(0.94f, 0);
 		SetEffectVar(effect, "g_glossiness_clr", glossiness_clr);
 
 		//Vertex buffer and index buffer

@@ -244,11 +244,44 @@ void LoadTestObj()
 	Renderer::Instance().SetAmbientLight(al);
 
 	DirectionLightPtr dl = std::make_shared<DirectionLight>();
-	dl->color_ = Vector3f(0.85f, 0.85f, 0.85f);
+	dl->color_ = Vector3f(1, 1, 1);
 	dl->dir_ = Vector3f(cam->eye_pos_ - cam->look_at_);
 	Renderer::Instance().AddDirectionLight(dl);
 
 	LoadAssimpStaticMesh("Model/testObj/testObj.obj");
+
+	app.Run();
+}
+
+
+void LoadSphere()
+{
+	int width = 1280;
+	int height = 720;
+
+	Application app;
+	app.Create("Sphere", width, height);
+
+	CameraPtr cam = std::make_shared<Camera>();
+	Vector3f eye(3, 3, 3), at(0, 0, 0), up(0, 1, 0);
+	cam->LookAt(eye, at, up);
+	cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
+	Renderer::Instance().SetCamera(cam);
+
+	SkyBoxRenderablePtr skybox = std::make_shared<SkyBoxRenderable>();
+	skybox->CreateCubeMap("Texture/CubeMap/BlueSky.dds");
+	Renderer::Instance().SetSkyBox(skybox);
+
+	AmbientLightPtr al = std::make_shared<AmbientLight>();
+	al->color_ = Vector3f(0.1f, 0.1f, 0.1f);
+	Renderer::Instance().SetAmbientLight(al);
+
+	DirectionLightPtr dl = std::make_shared<DirectionLight>();
+	dl->color_ = Vector3f(1, 1, 1);
+	dl->dir_ = Vector3f(cam->eye_pos_ - cam->look_at_);
+	Renderer::Instance().AddDirectionLight(dl);
+
+	LoadAssimpStaticMesh("Model/Sphere/Sphere.obj");
 
 	app.Run();
 }
@@ -293,7 +326,8 @@ int main()
 	try
 	{
 		//LoadTestObj();
-		LoadSponza();
+		//LoadSponza();
+		LoadSphere();
 	}
 	catch (const std::exception& e)
 	{

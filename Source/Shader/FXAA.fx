@@ -2,42 +2,7 @@ Texture2D	g_tex;
 
 float2		g_inv_width_height;
 
-
-SamplerState PointSampler
-{
-	Filter = MIN_MAG_MIP_POINT;
-	AddressU = Clamp;
-	AddressV = Clamp;
-};
-
-
-SamplerState LinearSampler
-{
-	Filter = MIN_MAG_LINEAR_MIP_POINT;
-	AddressU = Wrap;
-	AddressV = Wrap;
-};
-
-
-RasterizerState BackSolidRS
-{
-	FillMode = Solid;
-	CullMode = BACK;
-};
-
-
-DepthStencilState DepthDisalbedDSS
-{
-	DepthEnable = false;
-	DepthWriteMask = ZERO;
-};
-
-
-BlendState DisabledBS
-{
-	AlphaToCoverageEnable = FALSE;
-	BlendEnable[0] = FALSE;
-};
+#include "Utils.fx"
 
 
 float3 FxaaPixelShader(float2 pos)
@@ -47,12 +12,12 @@ float3 FxaaPixelShader(float2 pos)
 
 	float2 posM = pos;
 
-	float4 rgbyM = g_tex.Sample(LinearSampler, pos.xy);
-	float lumaN = g_tex.Sample(LinearSampler, pos.xy + float2(+0, -1) * g_inv_width_height).w;
-	float lumaW = g_tex.Sample(LinearSampler, pos.xy + float2(-1, +0) * g_inv_width_height).w;
+	float4 rgbyM = g_tex.Sample(LinearSamplerW, pos.xy);
+	float lumaN = g_tex.Sample(LinearSamplerW, pos.xy + float2(+0, -1) * g_inv_width_height).w;
+	float lumaW = g_tex.Sample(LinearSamplerW, pos.xy + float2(-1, +0) * g_inv_width_height).w;
 	float lumaM = rgbyM.w;
-	float lumaE = g_tex.Sample(LinearSampler, pos.xy + float2(+1, +0) * g_inv_width_height).w;
-	float lumaS = g_tex.Sample(LinearSampler, pos.xy + float2(+0, +1) * g_inv_width_height).w;
+	float lumaE = g_tex.Sample(LinearSamplerW, pos.xy + float2(+1, +0) * g_inv_width_height).w;
+	float lumaS = g_tex.Sample(LinearSamplerW, pos.xy + float2(+0, +1) * g_inv_width_height).w;
 	float rangeMin = min(lumaM, min(min(lumaN, lumaW), min(lumaS, lumaE)));
 	float rangeMax = max(lumaM, max(max(lumaN, lumaW), max(lumaS, lumaE)));
 	float range = rangeMax - rangeMin;
@@ -63,10 +28,10 @@ float3 FxaaPixelShader(float2 pos)
 	}
 	else
 	{
-		float lumaNW = g_tex.Sample(LinearSampler, pos.xy + float2(-1, -1) * g_inv_width_height).w;
-		float lumaNE = g_tex.Sample(LinearSampler, pos.xy + float2(+1, -1) * g_inv_width_height).w;
-		float lumaSW = g_tex.Sample(LinearSampler, pos.xy + float2(-1, +1) * g_inv_width_height).w;
-		float lumaSE = g_tex.Sample(LinearSampler, pos.xy + float2(+1, +1) * g_inv_width_height).w;
+		float lumaNW = g_tex.Sample(LinearSamplerW, pos.xy + float2(-1, -1) * g_inv_width_height).w;
+		float lumaNE = g_tex.Sample(LinearSamplerW, pos.xy + float2(+1, -1) * g_inv_width_height).w;
+		float lumaSW = g_tex.Sample(LinearSamplerW, pos.xy + float2(-1, +1) * g_inv_width_height).w;
+		float lumaSE = g_tex.Sample(LinearSamplerW, pos.xy + float2(+1, +1) * g_inv_width_height).w;
 
 		float lumaNS = lumaN + lumaS;
 		float lumaWE = lumaW + lumaE;
@@ -134,9 +99,9 @@ float3 FxaaPixelShader(float2 pos)
 		float2 posN = posB - offNP;
 		float2 posP = posB + offNP;
 		float subpixD = -2 * subpixC + 3;
-		float lumaEndN = g_tex.Sample(LinearSampler, posN).w;
+		float lumaEndN = g_tex.Sample(LinearSamplerW, posN).w;
 		float subpixE = subpixC * subpixC;
-		float lumaEndP = g_tex.Sample(LinearSampler, posP).w;
+		float lumaEndP = g_tex.Sample(LinearSamplerW, posP).w;
 
 		if (!pairN)
 		{
@@ -168,12 +133,12 @@ float3 FxaaPixelShader(float2 pos)
 
 			if (!doneN)
 			{
-				lumaEndN = g_tex.SampleGrad(LinearSampler, posN.xy, grad_x, grad_y).w;
+				lumaEndN = g_tex.SampleGrad(LinearSamplerW, posN.xy, grad_x, grad_y).w;
 				lumaEndN = lumaEndN - lumaNN * 0.5f;
 			}
 			if (!doneP)
 			{
-				lumaEndP = g_tex.SampleGrad(LinearSampler, posP.xy, grad_x, grad_y).w;
+				lumaEndP = g_tex.SampleGrad(LinearSamplerW, posP.xy, grad_x, grad_y).w;
 				lumaEndP = lumaEndP - lumaNN * 0.5f;
 			}
 			doneN = abs(lumaEndN) >= gradientScaled;
@@ -220,35 +185,8 @@ float3 FxaaPixelShader(float2 pos)
 			posM.x += pixelOffsetSubpix * lengthSign;
 		}
 
-		return g_tex.Sample(LinearSampler, posM).xyz;
+		return g_tex.Sample(LinearSamplerW, posM).xyz;
 	}
-}
-
-
-struct PP_VSO
-{
-	float4 pos : SV_Position;
-	float2 tc : TEXCOORD0;
-};
-
-
-float2 TexCoordFromPos(float4 pos)
-{
-	float2 tex = pos.xy / 2;
-	tex.y *= -1;
-	tex += 0.5f;
-	return tex;
-}
-
-
-PP_VSO PostProcessVS(float4 pos : POSITION)
-{
-	PP_VSO opt;
-
-	opt.pos = pos;
-	opt.tc = TexCoordFromPos(pos);
-
-	return opt;
 }
 
 
@@ -256,7 +194,7 @@ float4 CopyRGBLPS(PP_VSO ipt) : SV_Target
 {
 	const float3 RGB_TO_LUM = float3(0.2126f, 0.7152f, 0.0722f);
 
-	float3 c = g_tex.Sample(PointSampler, ipt.tc).rgb;
+	float3 c = g_tex.Sample(PointSamplerC, ipt.tc).rgb;
 	float lum = dot(c, RGB_TO_LUM);
 
 	return float4(c, lum);

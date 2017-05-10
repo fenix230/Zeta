@@ -31,32 +31,9 @@ Texture2D	g_tex;
 float4		g_near_q_far;
 
 
-
 #define MAX_SHININESS 8192.0f
 
-
-SamplerState PointSampler
-{
-	Filter = MIN_MAG_MIP_POINT;
-	AddressU = Wrap;
-	AddressV = Wrap;
-};
-
-
-SamplerState LinearSampler
-{
-	Filter = MIN_MAG_LINEAR_MIP_POINT;
-	AddressU = Wrap;
-	AddressV = Wrap;
-};
-
-
-SamplerState AnisoSampler
-{
-	Filter = ANISOTROPIC;
-	AddressU = Wrap;
-	AddressV = Wrap;
-};
+#include "Utils.fx"
 
 
 SamplerState SkyBoxSampler
@@ -65,14 +42,6 @@ SamplerState SkyBoxSampler
 	AddressU = Clamp;
 	AddressV = Clamp;
 	AddressW = Clamp;
-};
-
-
-DepthStencilState DepthEnalbedDSS
-{
-	DepthEnable = true;
-	DepthWriteMask = ALL;
-	DepthFunc = LESS_EQUAL;
 };
 
 
@@ -107,27 +76,6 @@ DepthStencilState LightingDSS
 };
 
 
-RasterizerState BackSolidRS
-{
-	FillMode = Solid;
-	CullMode = BACK;
-};
-
-
-RasterizerState FrontSolidRS
-{
-	FillMode = Solid;
-	CullMode = FRONT;
-};
-
-
-RasterizerState DoubleSolidRS
-{
-	FillMode = Solid;
-	CullMode = NONE;
-};
-
-
 BlendState LightingBS
 {
 	BlendEnable[0] = TRUE;
@@ -138,13 +86,6 @@ BlendState LightingBS
 	DestBlendAlpha = ONE;
 	BlendOpAlpha = ADD;
 	RenderTargetWriteMask[0] = 0xF;
-};
-
-
-BlendState DisabledBS
-{
-	AlphaToCoverageEnable = FALSE;
-	BlendEnable[0] = FALSE;
 };
 
 
@@ -299,34 +240,25 @@ GBUFFER_PSO GBufferPS(GBUFFER_VSO ipt)
 	float3 albedo = g_albedo_clr.rgb;
 	if (g_albedo_map_enabled)
 	{
-		albedo *= g_albedo_tex.Sample(AnisoSampler, ipt.tc).rgb;
+		albedo *= g_albedo_tex.Sample(AnisoSamplerW, ipt.tc).rgb;
 	}
 
 	float metalness = g_metalness_clr.r;
 	if (g_metalness_clr.y > 0.5f)
 	{
-		metalness *= g_metalness_tex.Sample(AnisoSampler, ipt.tc).r;
+		metalness *= g_metalness_tex.Sample(AnisoSamplerW, ipt.tc).r;
 	}
 
 	float glossiness = g_glossiness_clr.r;
 	if (g_glossiness_clr.y > 0.5f)
 	{
-		glossiness *= g_glossiness_tex.Sample(AnisoSampler, ipt.tc).r;
+		glossiness *= g_glossiness_tex.Sample(AnisoSamplerW, ipt.tc).r;
 	}
 
 	GBUFFER_PSO opt;
 	StoreGBufferMRT(normal, glossiness, albedo, metalness, opt.mrt_0, opt.mrt_1);
 
 	return opt;
-}
-
-
-float2 TexCoordFromPos(float4 pos)
-{
-	float2 tex = pos.xy / 2;
-	tex.y *= -1;
-	tex += 0.5f;
-	return tex;
 }
 
 
@@ -355,7 +287,7 @@ float4 LightingTestPS(LIGHTING_VSO ipt) : SV_Target
 	float2 tc = ipt.tc;
 	float3 view_dir = ipt.view_dir;
 
-	float4 mrt_1 = g_buffer_1_tex.Sample(PointSampler, tc);
+	float4 mrt_1 = g_buffer_1_tex.Sample(PointSamplerW, tc);
 
 	float3 c_diff = GetDiffuse(mrt_1);
 
@@ -370,8 +302,8 @@ float4 AmbientLightingPS(LIGHTING_VSO ipt) : SV_Target
 	float2 tc = ipt.tc;
 	float3 view_dir = ipt.view_dir;
 
-	float4 mrt_0 = g_buffer_tex.Sample(PointSampler, tc);
-	float4 mrt_1 = g_buffer_1_tex.Sample(PointSampler, tc);
+	float4 mrt_0 = g_buffer_tex.Sample(PointSamplerW, tc);
+	float4 mrt_1 = g_buffer_1_tex.Sample(PointSamplerW, tc);
 	view_dir = normalize(view_dir);
 	float3 normal = GetNormal(mrt_0);
 	float glossiness = GetGlossiness(mrt_0);
@@ -393,14 +325,14 @@ float4 DirectionLightingPS(LIGHTING_VSO ipt) : SV_Target
 
 	float3 shading = 0;
 
-	float4 mrt_0 = g_buffer_tex.Sample(PointSampler, tc);
+	float4 mrt_0 = g_buffer_tex.Sample(PointSamplerW, tc);
 	float3 normal = GetNormal(mrt_0);
 
 	float3 dir = g_light_dir_es.xyz;
 	float n_dot_l = dot(normal, dir);
 	if (n_dot_l > 0)
 	{
-		float4 mrt_1 = g_buffer_1_tex.Sample(PointSampler, tc);
+		float4 mrt_1 = g_buffer_1_tex.Sample(PointSamplerW, tc);
 
 		view_dir = normalize(view_dir);
 
@@ -488,10 +420,10 @@ float4 SpotLightingPS(LIGHTING_VSO ipt) : SV_Target
 
 	float4 shading = float4(0, 0, 0, 1);
 
-	float4 mrt_0 = g_buffer_tex.Sample(PointSampler, tc);
-	float4 mrt_1 = g_buffer_1_tex.Sample(PointSampler, tc);
+	float4 mrt_0 = g_buffer_tex.Sample(PointSamplerW, tc);
+	float4 mrt_1 = g_buffer_1_tex.Sample(PointSamplerW, tc);
 	view_dir = normalize(view_dir);
-	float3 pos_es = view_dir * (g_depth_tex.Sample(PointSampler, tc).x / view_dir.z);
+	float3 pos_es = view_dir * (g_depth_tex.Sample(PointSamplerW, tc).x / view_dir.z);
 	float3 normal = GetNormal(mrt_0);
 	float shininess = Glossiness2Shininess(GetGlossiness(mrt_0));
 	float3 c_diff = GetDiffuse(mrt_1);
@@ -529,24 +461,6 @@ float4 SkyBoxShadingPS(SKYBOX_VSO ipt) : SV_Target
 }
 
 
-struct PP_VSO
-{
-	float4 pos : SV_Position;
-	float2 tc : TEXCOORD0;
-};
-
-
-PP_VSO PostProcessVS(float4 pos : POSITION)
-{
-	PP_VSO opt;
-
-	opt.pos = pos;
-	opt.tc = TexCoordFromPos(pos);
-
-	return opt;
-}
-
-
 float NonLinearDepthToLinear(float depth, float near_mul_q, float q)
 {
 	return near_mul_q / (q - depth);
@@ -555,7 +469,7 @@ float NonLinearDepthToLinear(float depth, float near_mul_q, float q)
 
 float4 LinearDepthPS(PP_VSO ipt) : SV_Target
 {
-	float ld = NonLinearDepthToLinear(g_tex.Sample(PointSampler, ipt.tc).r,
+	float ld = NonLinearDepthToLinear(g_tex.Sample(PointSamplerW, ipt.tc).r,
 	g_near_q_far.x, g_near_q_far.y);
 
 	return float4(ld, ld, ld, ld);
@@ -573,8 +487,8 @@ COPY_SHADING_DEPTH_PSO CopyShadingDepthPS(PP_VSO ipt)
 {
 	COPY_SHADING_DEPTH_PSO opt;
 
-	opt.clr = g_shading_tex.Sample(PointSampler, ipt.tc);
-	opt.depth = g_depth_tex.Sample(PointSampler, ipt.tc);
+	opt.clr = g_shading_tex.Sample(PointSamplerW, ipt.tc);
+	opt.depth = g_depth_tex.Sample(PointSamplerW, ipt.tc);
 
 	return opt;
 }

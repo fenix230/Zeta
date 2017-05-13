@@ -177,8 +177,8 @@ namespace zeta
 	V LinearToSRGB(const V& v1)
 	{
 		V v2;
-		const float* p1 = (float*)&v1;
-		float* p2 = (float*)&v2;
+		auto p1 = stdext::make_checked_array_iterator((float*)&v1, V::elem_count, 0);
+		auto p2 = stdext::make_checked_array_iterator((float*)&v2, V::elem_count, 0);
 		std::transform(p1, p1 + V::elem_count, p2, LinearToSRGBF);
 		return v2;
 	}
@@ -187,8 +187,8 @@ namespace zeta
 	V SRGBToLinear(const V& v1)
 	{
 		V v2;
-		const float* p1 = (float*)&v1;
-		float* p2 = (float*)&v2;
+		auto p1 = stdext::make_checked_array_iterator((float*)&v1, V::elem_count, 0);
+		auto p2 = stdext::make_checked_array_iterator((float*)&v2, V::elem_count, 0);
 		std::transform(p1, p1 + V::elem_count, p2, SRGBToLinearF);
 		return v2;
 	}

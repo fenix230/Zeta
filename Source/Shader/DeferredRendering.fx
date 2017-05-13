@@ -326,20 +326,17 @@ float4 DirectionLightingPS(LIGHTING_VSO ipt) : SV_Target
 	float3 shading = 0;
 
 	float4 mrt_0 = g_buffer_tex.Sample(PointSamplerW, tc);
+	float4 mrt_1 = g_buffer_1_tex.Sample(PointSamplerW, tc);
+	view_dir = normalize(view_dir);
 	float3 normal = GetNormal(mrt_0);
+	float shininess = Glossiness2Shininess(GetGlossiness(mrt_0));
+	float3 c_diff = GetDiffuse(mrt_1);
+	float3 c_spec = GetSpecular(mrt_1);
 
 	float3 dir = g_light_dir_es.xyz;
 	float n_dot_l = dot(normal, dir);
 	if (n_dot_l > 0)
 	{
-		float4 mrt_1 = g_buffer_1_tex.Sample(PointSamplerW, tc);
-
-		view_dir = normalize(view_dir);
-
-		float shininess = Glossiness2Shininess(GetGlossiness(mrt_0));
-		float3 c_diff = GetDiffuse(mrt_1);
-		float3 c_spec = GetSpecular(mrt_1);
-
 		float3 halfway = normalize(dir - view_dir);
 		float3 spec = SpecularTerm(c_spec, dir, halfway, normal, shininess);
 		shading = max((c_diff + spec) * n_dot_l, 0) * g_light_color;

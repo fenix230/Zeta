@@ -24,8 +24,6 @@ namespace zeta
 	Renderer::Renderer()
 	{
 		wnd_ = nullptr;
-		width_ = 0;
-		height_ = 0;
 		frame_time_ = 0;
 		frame_count_ = 0;
 
@@ -178,8 +176,8 @@ namespace zeta
 			return;
 		}
 
-		width_ = width;
-		height_ = height;
+		width = width;
+		height = height;
 
 		d3d_imm_ctx_->OMSetRenderTargets(0, 0, 0);
 		d3d_imm_ctx_->OMSetDepthStencilState(0, 0);
@@ -198,15 +196,15 @@ namespace zeta
 		if (gi_swap_chain_1_)
 		{
 			dxgi_sc = gi_swap_chain_1_.get();
-			THROW_FAILED(dxgi_sc->ResizeBuffers(2, width_, height_, DXGI_FORMAT_R8G8B8A8_UNORM,
+			THROW_FAILED(dxgi_sc->ResizeBuffers(2, width, height, DXGI_FORMAT_R8G8B8A8_UNORM,
 				DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 		}
 		else
 		{
 			DXGI_SWAP_CHAIN_DESC1 sc_desc1;
 			ZeroMemory(&sc_desc1, sizeof(sc_desc1));
-			sc_desc1.Width = width_;
-			sc_desc1.Height = height_;
+			sc_desc1.Width = width;
+			sc_desc1.Height = height;
 			sc_desc1.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 			sc_desc1.Stereo = false;
 			sc_desc1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -230,46 +228,37 @@ namespace zeta
 		}
 
 		//Frame buffers
+		DXGI_FORMAT hdr_fmt = DXGI_FORMAT_R11G11B10_FLOAT;
+
 		gbuffer_fb_ = std::make_shared<FrameBuffer>();
-		gbuffer_fb_->Create(width_, height_, 2);
+		gbuffer_fb_->Create(width, height, 2);
 
 		linear_depth_fb_ = std::make_shared<FrameBuffer>(DXGI_FORMAT_R32_FLOAT);
-		linear_depth_fb_->Create(width_, height_, 1);
+		linear_depth_fb_->Create(width, height, 1);
 
-		lighting_fb_ = std::make_shared<FrameBuffer>();
-		lighting_fb_->Create(width_, height_, 1);
+		lighting_fb_ = std::make_shared<FrameBuffer>(hdr_fmt);
+		lighting_fb_->Create(width, height, 1);
 
-		shading_fb_ = std::make_shared<FrameBuffer>();
-		shading_fb_->Create(width_, height_, 1);
+		shading_fb_ = std::make_shared<FrameBuffer>(hdr_fmt);
+		shading_fb_->Create(width, height, 1);
 
 		hdr_fb_ = std::make_shared<FrameBuffer>();
-		hdr_fb_->Create(width_, height_, 1);
+		hdr_fb_->Create(width, height, 1);
 
 		fxaa_fb_ = std::make_shared<FrameBuffer>();
-		fxaa_fb_->Create(width_, height_, 1);
+		fxaa_fb_->Create(width, height, 1);
 
 		ID3D11Texture2D* frame_buffer = nullptr;
 		THROW_FAILED(dxgi_sc->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&frame_buffer));
 
 		srgb_fb_ = std::make_shared<FrameBuffer>();
-		srgb_fb_->Create(width_, height_, frame_buffer);
+		srgb_fb_->Create(width, height, frame_buffer);
 
 		frame_buffer->Release();
 		frame_buffer = nullptr;
 
-		//Viewport
-		D3D11_VIEWPORT viewport;
-		viewport.Width = (float)width_;
-		viewport.Height = (float)height_;
-		viewport.MinDepth = 0.0f;
-		viewport.MaxDepth = 1.0f;
-		viewport.TopLeftX = 0.0f;
-		viewport.TopLeftY = 0.0f;
-
-		d3d_imm_ctx_->RSSetViewports(1, &viewport);
-
-		hdr_pp_->Initialize(width_, height_);
-		fxaa_pp_->Initialize(width_, height_);
+		hdr_pp_->Initialize(width, height, hdr_fmt);
+		fxaa_pp_->Initialize(width, height, DXGI_FORMAT_R8G8B8A8_UNORM);
 	}
 
 	ID3DX11Effect* Renderer::GetEffect(std::string file_path)
@@ -512,12 +501,12 @@ namespace zeta
 		return hr;
 	}
 
-	ID3D11Texture2D* Renderer::D3DCreateTexture2D(UINT width, UINT height, int fmt, UINT bind_flags)
+	ID3D11Texture2D* Renderer::D3DCreateTexture2D(UINT width, UINT height, DXGI_FORMAT fmt, UINT bind_flags)
 	{
 		D3D11_TEXTURE2D_DESC d3d_tex_desc;
 		ZeroMemory(&d3d_tex_desc, sizeof(d3d_tex_desc));
-		d3d_tex_desc.Width = width_;
-		d3d_tex_desc.Height = height_;
+		d3d_tex_desc.Width = width;
+		d3d_tex_desc.Height = height;
 		d3d_tex_desc.MipLevels = 1;
 		d3d_tex_desc.ArraySize = 1;
 		d3d_tex_desc.Format = (DXGI_FORMAT)fmt;
@@ -534,7 +523,7 @@ namespace zeta
 		return d3d_tex;
 	}
 
-	ID3D11DepthStencilView* Renderer::D3DCreateDepthStencilView(ID3D11Texture2D* tex, int fmt)
+	ID3D11DepthStencilView* Renderer::D3DCreateDepthStencilView(ID3D11Texture2D* tex, DXGI_FORMAT fmt)
 	{
 		D3D11_DEPTH_STENCIL_VIEW_DESC d3d_dsv_desc;
 		ZeroMemory(&d3d_dsv_desc, sizeof(d3d_dsv_desc));

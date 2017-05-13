@@ -154,10 +154,10 @@ namespace zeta
 			SetEffectVar(effect, "g_albedo_clr", albedo_clr);
 		}
 
-		Vector2f metalness_clr(0.92f, 0);
+		Vector2f metalness_clr(0.25f, 0);
 		SetEffectVar(effect, "g_metalness_clr", metalness_clr);
 
-		Vector2f glossiness_clr(0.94f, 0);
+		Vector2f glossiness_clr(0.2f, 0);
 		SetEffectVar(effect, "g_glossiness_clr", glossiness_clr);
 
 		//Vertex buffer and index buffer
@@ -304,7 +304,11 @@ namespace zeta
 
 			ID3D11Resource* d3d_tex_res = nullptr;
 			ID3D11ShaderResourceView* d3d_tex_srv = nullptr;
-			if (SUCCEEDED(CreateDDSTextureFromFile(Renderer::Instance().D3DDevice(), wfile_path.c_str(), &d3d_tex_res, &d3d_tex_srv)))
+			if (SUCCEEDED(
+				CreateDDSTextureFromFileEx(Renderer::Instance().D3DDevice(), nullptr, wfile_path.c_str(), 0,
+					D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0, true,
+					&d3d_tex_res, &d3d_tex_srv))
+				)
 			{
 				d3d_tex_ = MakeCOMPtr(d3d_tex_res);
 				d3d_srv_ = MakeCOMPtr(d3d_tex_srv);

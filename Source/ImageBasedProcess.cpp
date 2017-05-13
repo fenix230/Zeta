@@ -128,7 +128,7 @@ namespace zeta
 	{
 	}
 
-	void AdaptedLumPostProcess::Initialize(uint32_t width, uint32_t height)
+	void AdaptedLumPostProcess::Initialize(uint32_t width, uint32_t height, DXGI_FORMAT fmt)
 	{
 		adapted_texs_[0] = std::make_shared<FrameBuffer>(DXGI_FORMAT_R32_FLOAT);
 		adapted_texs_[1] = std::make_shared<FrameBuffer>(DXGI_FORMAT_R32_FLOAT);
@@ -154,9 +154,9 @@ namespace zeta
 		bright_pass_downsampler_->LoadFX("Shader/HDR.fx", "HDR", "SqrBright");
 
 		downsamplers_[0] = std::make_shared<OnePassPostProcess>();
-		downsamplers_[0]->LoadFX("Shader/HDR.fx", "HDR", "BilinearCopy");
+		downsamplers_[0]->LoadFX("Shader/Copy.fx", "Copy", "BilinearCopy");
 		downsamplers_[1] = std::make_shared<OnePassPostProcess>();
-		downsamplers_[1]->LoadFX("Shader/HDR.fx", "HDR", "BilinearCopy");
+		downsamplers_[1]->LoadFX("Shader/Copy.fx", "Copy", "BilinearCopy");
 
 		blurs_[0] = std::make_shared<BlurPostProcess>("SeparableGaussian", 8, 1.0f);
 		blurs_[1] = std::make_shared<BlurPostProcess>("SeparableGaussian", 8, 1.0f);
@@ -171,7 +171,7 @@ namespace zeta
 
 	}
 
-	void LensEffectsPostProcess::Initialize(uint32_t width, uint32_t height)
+	void LensEffectsPostProcess::Initialize(uint32_t width, uint32_t height, DXGI_FORMAT fmt)
 	{
 		downsample_fbs_.clear();
 		glow_fbs_.clear();
@@ -180,19 +180,19 @@ namespace zeta
 
 		for (size_t i = 0; i < downsample_fbs_.size(); i++)
 		{
-			downsample_fbs_[i] = std::make_shared<FrameBuffer>();
+			downsample_fbs_[i] = std::make_shared<FrameBuffer>(fmt);
 			downsample_fbs_[i]->Create(width / (2 << i), height / (2 << i), 1);
 
-			glow_fbs_[i] = std::make_shared<FrameBuffer>();
+			glow_fbs_[i] = std::make_shared<FrameBuffer>(fmt);
 			glow_fbs_[i]->Create(width / (2 << i), height / (2 << i), 1);
 		}
 
-		len_fb_ = std::make_shared<FrameBuffer>();
+		len_fb_ = std::make_shared<FrameBuffer>(fmt);
 		len_fb_->Create(width / 2, height / 2, 1);
 
 		for (size_t i = 0; i < blurs_.size(); i++)
 		{
-			blurs_[i]->Initialize(width / (2 << i), height / (2 << i));
+			blurs_[i]->Initialize(width / (2 << i), height / (2 << i), fmt);
 		}
 	}
 
@@ -244,7 +244,7 @@ namespace zeta
 
 	SeparableGaussianFilterPostProcess::SeparableGaussianFilterPostProcess(bool x_dir)
 	{
-		this->LoadFX("Shader/HDR.fx", "HDR", x_dir ? "BlurX" : "BlurY");
+		this->LoadFX("Shader/Blur.fx", "Blur", x_dir ? "BlurX" : "BlurY");
 		x_dir_ = x_dir;
 	}
 
@@ -253,7 +253,7 @@ namespace zeta
 
 	}
 
-	void SeparableGaussianFilterPostProcess::Initialize(uint32_t width, uint32_t height)
+	void SeparableGaussianFilterPostProcess::Initialize(uint32_t width, uint32_t height, DXGI_FORMAT fmt)
 	{
 		this->CalSampleOffsets(x_dir_ ? width : height, 3.0f);
 	}
@@ -261,8 +261,8 @@ namespace zeta
 	void SeparableGaussianFilterPostProcess::Apply()
 	{
 		SetEffectVar(effect_, "g_tex_size", tex_size_);
-		SetEffectVarScalar(effect_, "g_color_weight", color_weight_.data(), (int)color_weight_.size());
-		SetEffectVarScalar(effect_, "g_tc_offset", tc_offset_.data(), (int)tc_offset_.size());
+		SetEffectVarScalar(effect_, "g_tc_offset", &tc_offset_[0], (int)tc_offset_.size());
+		SetEffectVarScalar(effect_, "g_color_weight", &color_weight_[0], (int)color_weight_.size());
 
 		OnePassPostProcess::Apply();
 	}
@@ -352,13 +352,13 @@ namespace zeta
 
 	}
 
-	void BlurPostProcess::Initialize(uint32_t width, uint32_t height)
+	void BlurPostProcess::Initialize(uint32_t width, uint32_t height, DXGI_FORMAT fmt)
 	{
-		fb_ = std::make_shared<FrameBuffer>();
+		fb_ = std::make_shared<FrameBuffer>(fmt);
 		fb_->Create(width, height, 1);
 
-		x_filter_->Initialize(width, height);
-		y_filter_->Initialize(width, height);
+		x_filter_->Initialize(width, height, fmt);
+		y_filter_->Initialize(width, height, fmt);
 	}
 
 	void BlurPostProcess::SetInputDefault(FrameBufferPtr fb)
@@ -407,7 +407,7 @@ namespace zeta
 		adapted_lum_.reset();
 	}
 
-	void ImageStatPostProcess::Initialize(uint32_t width, uint32_t height)
+	void ImageStatPostProcess::Initialize(uint32_t width, uint32_t height, DXGI_FORMAT fmt)
 	{
 		fbs_.clear();
 
@@ -420,11 +420,13 @@ namespace zeta
 			fbs_.back()->Create(width, height, 1);
 		}
 
-		adapted_lum_->Initialize(width, height);
+		adapted_lum_->Initialize(width, height, fmt);
 	}
 
 	void ImageStatPostProcess::SetInputDefault(FrameBufferPtr fb)
 	{
+		sum_lums_1st_->SetInputDefault(fb);
+
 		int ifb = 0;
 		sum_lums_1st_->SetOutput(fbs_[ifb]);
 
@@ -435,8 +437,6 @@ namespace zeta
 		}
 
 		adapted_lum_->SetInputDefault(fbs_[ifb]);
-
-		sum_lums_1st_->SetInputDefault(fb);
 	}
 
 	FrameBufferPtr ImageStatPostProcess::GetOutput()
@@ -473,10 +473,10 @@ namespace zeta
 
 	}
 
-	void HDRPostProcess::Initialize(uint32_t width, uint32_t height)
+	void HDRPostProcess::Initialize(uint32_t width, uint32_t height, DXGI_FORMAT fmt)
 	{
-		image_stat_->Initialize(width, height);
-		lens_effects_->Initialize(width, height);
+		image_stat_->Initialize(width, height, fmt);
+		lens_effects_->Initialize(width, height, fmt);
 	}
 
 	void HDRPostProcess::SetInputDefault(FrameBufferPtr fb)
@@ -523,9 +523,9 @@ namespace zeta
 
 	}
 
-	void FXAAPostProcess::Initialize(uint32_t width, uint32_t height)
+	void FXAAPostProcess::Initialize(uint32_t width, uint32_t height, DXGI_FORMAT fmt)
 	{
-		fb_ = std::make_shared<FrameBuffer>();
+		fb_ = std::make_shared<FrameBuffer>(fmt);
 		fb_->Create(width, height, 1);
 	}
 

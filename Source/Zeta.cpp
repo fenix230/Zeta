@@ -263,7 +263,7 @@ void LoadSphere()
 	app.Create("Sphere", width, height);
 
 	CameraPtr cam = std::make_shared<Camera>();
-	Vector3f eye(3, 3, 3), at(0, 0, 0), up(0, 1, 0);
+	Vector3f eye(4, 4, 4), at(0, 0, 0), up(0, 1, 0);
 	cam->LookAt(eye, at, up);
 	cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
 	Renderer::Instance().SetCamera(cam);
@@ -278,7 +278,7 @@ void LoadSphere()
 
 	DirectionLightPtr dl = std::make_shared<DirectionLight>();
 	dl->color_ = Vector3f(1, 1, 1);
-	dl->dir_ = Vector3f(cam->eye_pos_ - cam->look_at_);
+	dl->dir_ = Vector3f(0, 1, 0);
 	Renderer::Instance().AddDirectionLight(dl);
 
 	LoadAssimpStaticMesh("Model/Sphere/Sphere.obj");
@@ -326,8 +326,8 @@ int main()
 	try
 	{
 		//LoadTestObj();
-		//LoadSponza();
-		LoadSphere();
+		LoadSponza();
+		//LoadSphere();
 	}
 	catch (const std::exception& e)
 	{

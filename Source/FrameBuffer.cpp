@@ -56,7 +56,7 @@ namespace zeta
 					D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE));
 
 				D3D11_RENDER_TARGET_VIEW_DESC d3d_rtv_desc;
-				d3d_rtv_desc.Format = (DXGI_FORMAT)rtv_fmt_;
+				d3d_rtv_desc.Format = rtv_fmt_;
 				d3d_rtv_desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 				d3d_rtv_desc.Texture2D.MipSlice = 0;
 
@@ -98,6 +98,17 @@ namespace zeta
 		}
 
 		Renderer::Instance().D3DContext()->OMSetRenderTargets((UINT)d3d_rtvs.size(), d3d_rtvs.data(), d3d_dsv_.get());
+
+		//Bind Viewport
+		D3D11_VIEWPORT viewport;
+		viewport.Width = (float)width_;
+		viewport.Height = (float)height_;
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		viewport.TopLeftX = 0.0f;
+		viewport.TopLeftY = 0.0f;
+
+		Renderer::Instance().D3DContext()->RSSetViewports(1, &viewport);
 	}
 
 	DXGI_FORMAT FrameBuffer::Format()
@@ -120,7 +131,7 @@ namespace zeta
 		if (!rtvs_[index].d3d_srv_)
 		{
 			D3D11_SHADER_RESOURCE_VIEW_DESC d3d_srv_desc;
-			d3d_srv_desc.Format = (DXGI_FORMAT)rtv_fmt_;
+			d3d_srv_desc.Format = rtv_fmt_;
 			d3d_srv_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 			d3d_srv_desc.Texture2D.MostDetailedMip = 0;
 			d3d_srv_desc.Texture2D.MipLevels = 1;

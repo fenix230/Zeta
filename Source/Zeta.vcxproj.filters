@@ -19,6 +19,9 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
+    <Text Include="Shader\Blur.fx">
+      <Filter>Shader</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -122,6 +125,9 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="Shader\Utils.fx">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\Copy.fx">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>

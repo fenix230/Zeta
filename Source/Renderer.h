@@ -47,16 +47,14 @@ namespace zeta
 		HRESULT D3DCompile(std::string const & src_data, const char* entry_point, const char* target,
 			std::vector<uint8_t>& code, std::string& error_msgs) const;
 
-		ID3D11Texture2D* D3DCreateTexture2D(UINT width, UINT height, int /*DXGI_FORMAT*/ fmt, UINT bind_flags);
+		ID3D11Texture2D* D3DCreateTexture2D(UINT width, UINT height, DXGI_FORMAT fmt, UINT bind_flags);
 
-		ID3D11DepthStencilView* D3DCreateDepthStencilView(ID3D11Texture2D* tex, int /*DXGI_FORMAT*/ fmt);
+		ID3D11DepthStencilView* D3DCreateDepthStencilView(ID3D11Texture2D* tex, DXGI_FORMAT fmt);
 
 		ID3D11RenderTargetView* D3DCreateRenderTargetView(ID3D11Texture2D* tex);
 
 	private:
 		HWND wnd_;
-		uint32_t width_;
-		uint32_t height_;
 
 		HMODULE mod_d3d11_;
 		HMODULE mod_dxgi_;

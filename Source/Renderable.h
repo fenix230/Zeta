@@ -21,13 +21,11 @@ namespace zeta
 		virtual ~StaticMeshRenderable();
 
 		virtual void Render(ID3DX11Effect* effect, ID3DX11EffectPass* pass) override;
-
-		void CreateVertexBuffer(size_t num_vert,
-			const Vector3f* pos_data,
-			const Vector3f* norm_data,
-			const Vector2f* tc_data);
+		
+		void CreateVertexBuffer(size_t num_vert, const Vector3f* pos_data, const Vector3f* norm_data, const Vector2f* tc_data);
 		void CreateIndexBuffer(size_t num_indice, const uint32_t* data);
-		void CreateMaterial(std::string file_path, Vector3f ka, Vector3f kd, Vector3f ks);
+
+		void CreateMtl(std::string albedo_tex, Vector3f albedo_clr, float metalness, float glossiness);
 
 		void Destory();
 
@@ -47,11 +45,17 @@ namespace zeta
 		unsigned int num_indice_;
 
 		std::vector<std::pair<ID3DX11EffectPass*, ID3D11InputLayoutPtr>> d3d_input_layouts_;
-
-		ID3D11ResourcePtr d3d_tex_;
-		ID3D11ShaderResourceViewPtr d3d_srv_;
-
-		Vector3f ka_, kd_, ks_;
+		
+		struct TEX
+		{
+			ID3D11ResourcePtr d3d_tex_;
+			ID3D11ShaderResourceViewPtr d3d_srv_;
+		};
+		
+		TEX albedo_tex_;
+		Vector3f albedo_clr_;
+		float metalness_;
+		float glossiness_;
 	};
 
 

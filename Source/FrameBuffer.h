@@ -9,23 +9,25 @@ namespace zeta
 	{
 	public:
 		FrameBuffer();
-		FrameBuffer(DXGI_FORMAT rtv_fmt);
 		virtual ~FrameBuffer();
 
-		void Create(uint32_t width, uint32_t height, ID3D11Texture2D* sc_buffer);
-
-		void Create(uint32_t width, uint32_t height, size_t rtv_count);
-
-		void Create(uint32_t width, uint32_t height, size_t rtv_count, ID3D11Texture2D* sc_buffer, size_t sc_index);
+		struct VIEW_DESC
+		{
+			uint32_t width;
+			uint32_t height;
+			DXGI_FORMAT format;
+			ID3D11Texture2D* tex;
+		};
+		void Create(const VIEW_DESC& rtv_descs);
+		void Create(const VIEW_DESC* rtv_descs, size_t rtv_count);
 
 		void Clear(Vector4f* c = nullptr);
 
 		void Bind();
 
-		DXGI_FORMAT Format();
-
-		uint32_t Width();
-		uint32_t Height();
+		uint32_t Width(size_t index);
+		uint32_t Height(size_t index);
+		DXGI_FORMAT Format(size_t index);
 
 		ID3D11ShaderResourceView* RetriveRTShaderResourceView(size_t index);
 
@@ -34,10 +36,7 @@ namespace zeta
 		ID3D11ShaderResourceView* RetriveSRV(int index);
 
 	private:
-		DXGI_FORMAT rtv_fmt_;
-
-		uint32_t width_;
-		uint32_t height_;
+		std::vector<VIEW_DESC> rtv_descs_;
 
 		struct RTV
 		{
@@ -45,6 +44,7 @@ namespace zeta
 			ID3D11RenderTargetViewPtr d3d_rtv_;
 			ID3D11ShaderResourceViewPtr d3d_srv_;
 		};
+
 		std::vector<RTV> rtvs_;
 
 		ID3D11Texture2DPtr d3d_dsv_tex_;

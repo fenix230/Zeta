@@ -215,7 +215,7 @@ void LoadAssimpStaticMesh(std::string file_path, float scale = 1, bool inverse_z
 		StaticMeshRenderablePtr r = std::make_shared<StaticMeshRenderable>();
 		r->CreateVertexBuffer(num_vert, pos_data.data(), norm_data.data(), tc_data.data());
 		r->CreateIndexBuffer(indice_data.size(), indice_data.data());
-		r->CreateMaterial(tex_path, ka, kd, ks);
+		r->CreateMtl(tex_path, ka, 0.2f, 0.2f);
 		Renderer::Instance().AddRenderable(r);
 	}
 }
@@ -263,7 +263,7 @@ void LoadSphere()
 	app.Create("Sphere", width, height);
 
 	CameraPtr cam = std::make_shared<Camera>();
-	Vector3f eye(4, 4, 4), at(0, 0, 0), up(0, 1, 0);
+	Vector3f eye(2, 2, 2), at(0, 0, 0), up(0, 1, 0);
 	cam->LookAt(eye, at, up);
 	cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
 	Renderer::Instance().SetCamera(cam);

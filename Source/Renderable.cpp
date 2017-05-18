@@ -61,11 +61,11 @@ namespace zeta
 		num_indice_ = (UINT)num_indice;
 	}
 
-	void StaticMeshRenderable::CreateMaterial(std::string file_path, Vector3f ka, Vector3f kd, Vector3f ks)
+	void StaticMeshRenderable::CreateMtl(std::string albedo_tex, Vector3f albedo_clr, float metalness, float glossiness)
 	{
-		if (!file_path.empty())
+		if (!albedo_tex.empty())
 		{
-			std::wstring wfile_path = ToW(file_path);
+			std::wstring wfile_path = ToW(albedo_tex);
 
 			ID3D11Resource* d3d_tex_res = nullptr;
 			ID3D11ShaderResourceView* d3d_tex_srv = nullptr;
@@ -76,14 +76,14 @@ namespace zeta
 				&d3d_tex_res, &d3d_tex_srv))
 				)
 			{
-				d3d_tex_ = MakeCOMPtr(d3d_tex_res);
-				d3d_srv_ = MakeCOMPtr(d3d_tex_srv);
+				albedo_tex_.d3d_tex_ = MakeCOMPtr(d3d_tex_res);
+				albedo_tex_.d3d_srv_ = MakeCOMPtr(d3d_tex_srv);
 			}
 		}
 
-		ka_ = ka;
-		kd_ = kd;
-		ks_ = ks;
+		albedo_clr_ = albedo_clr;
+		metalness_ = metalness;
+		glossiness_ = glossiness;
 	}
 
 	ID3D11InputLayout* StaticMeshRenderable::D3DInputLayout(ID3DX11EffectPass* pass)
@@ -130,35 +130,32 @@ namespace zeta
 		d3d_input_layouts_.clear();
 		d3d_vertex_buffer_.reset();
 		d3d_index_buffer_.reset();
-		d3d_tex_.reset();
-		d3d_srv_.reset();
+
+		albedo_tex_.d3d_tex_.reset();
+		albedo_tex_.d3d_srv_.reset();
 	}
 
 	void StaticMeshRenderable::Render(ID3DX11Effect* effect, ID3DX11EffectPass* pass)
 	{
 		//Material
-		if (d3d_srv_)
+		if (albedo_tex_.d3d_srv_)
 		{
 			Vector3f albedo_clr(0.58f, 0.58f, 0.58f);
 	
-			SetEffectVar(effect, "g_albedo_tex", d3d_srv_.get());
+			SetEffectVar(effect, "g_albedo_tex", albedo_tex_.d3d_srv_.get());
 			SetEffectVar(effect, "g_albedo_map_enabled", true);
 			SetEffectVar(effect, "g_albedo_clr", albedo_clr);
 		}
 		else
 		{
-			Vector3f albedo_clr = SRGBToLinear(kd_);
-			albedo_clr = Vector3f(0.799102738f, 0.496932995f, 0.048171824f);
+			Vector3f albedo_clr = SRGBToLinear(albedo_clr_);
 
 			SetEffectVar(effect, "g_albedo_map_enabled", false);
 			SetEffectVar(effect, "g_albedo_clr", albedo_clr);
 		}
 
-		Vector2f metalness_clr(0.25f, 0);
-		SetEffectVar(effect, "g_metalness_clr", metalness_clr);
-
-		Vector2f glossiness_clr(0.2f, 0);
-		SetEffectVar(effect, "g_glossiness_clr", glossiness_clr);
+		SetEffectVar(effect, "g_metalness_clr", Vector2f(metalness_, 0));
+		SetEffectVar(effect, "g_glossiness_clr", Vector2f(glossiness_, 0));
 
 		//Vertex buffer and index buffer
 		std::array<ID3D11Buffer*, 1> buffers = {

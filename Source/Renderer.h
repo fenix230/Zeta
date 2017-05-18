@@ -13,9 +13,9 @@ namespace zeta
 	public:
 		static Renderer& Instance();
 
-		void Create(HWND wnd, int width, int height);
+		void Create(HWND wnd, uint32_t width, uint32_t height);
 
-		void Resize(int width, int height);
+		void Resize(uint32_t width, uint32_t height);
 
 		void SetCamera(CameraPtr cam);
 		CameraPtr GetCamera() const;

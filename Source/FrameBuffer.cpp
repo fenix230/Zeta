@@ -8,55 +8,44 @@ namespace zeta
 
 	FrameBuffer::FrameBuffer()
 	{
-		rtv_fmt_ = DXGI_FORMAT_R8G8B8A8_UNORM;
-		width_ = 0;
-		height_ = 0;
-	}
-
-	FrameBuffer::FrameBuffer(DXGI_FORMAT rtv_fmt)
-	{
-		rtv_fmt_ = rtv_fmt;
 	}
 
 	FrameBuffer::~FrameBuffer()
 	{
+		rtv_descs_.clear();
 		rtvs_.clear();
 		d3d_dsv_tex_.reset();
 		d3d_dsv_.reset();
 	}
 
-	void FrameBuffer::Create(uint32_t width, uint32_t height, ID3D11Texture2D* sc_buffer)
+	void FrameBuffer::Create(const VIEW_DESC& rtv_descs)
 	{
-		this->Create(width, height, 1, sc_buffer, 0);
+		this->Create(&rtv_descs, 1);
 	}
 
-	void FrameBuffer::Create(uint32_t width, uint32_t height, size_t rtv_count)
+	void FrameBuffer::Create(const VIEW_DESC* rtv_descs, size_t rtv_count)
 	{
-		this->Create(width, height, rtv_count, nullptr, -1);
-	}
-
-	void FrameBuffer::Create(uint32_t width, uint32_t height, size_t rtv_count, ID3D11Texture2D* sc_buffer, size_t sc_index)
-	{
-		width_ = width;
-		height_ = height;
+		rtv_descs_.clear();
+		std::copy_n(rtv_descs, rtv_count, std::back_inserter(rtv_descs_));
 
 		//Render target view
 		rtvs_.resize(rtv_count);
 
-		for (size_t i = 0; i != rtv_count; i++)
+		for (size_t i = 0; i != rtv_descs_.size(); i++)
 		{
+			const VIEW_DESC& desc = rtv_descs_[i];
 			RTV& rtv = rtvs_[i];
-			if (i == sc_index)
+			if (desc.tex)
 			{
-				rtv.d3d_rtv_ = MakeCOMPtr(Renderer::Instance().D3DCreateRenderTargetView(sc_buffer));
+				rtv.d3d_rtv_ = MakeCOMPtr(Renderer::Instance().D3DCreateRenderTargetView(desc.tex));
 			}
 			else
 			{
-				rtv.d3d_rtv_tex_ = MakeCOMPtr(Renderer::Instance().D3DCreateTexture2D(width, height, rtv_fmt_,
+				rtv.d3d_rtv_tex_ = MakeCOMPtr(Renderer::Instance().D3DCreateTexture2D(desc.width, desc.height, desc.format,
 					D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE));
 
 				D3D11_RENDER_TARGET_VIEW_DESC d3d_rtv_desc;
-				d3d_rtv_desc.Format = rtv_fmt_;
+				d3d_rtv_desc.Format = desc.format;
 				d3d_rtv_desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
 				d3d_rtv_desc.Texture2D.MipSlice = 0;
 
@@ -68,6 +57,14 @@ namespace zeta
 		}
 
 		//Depth stencil view
+		uint32_t width = 0;
+		uint32_t height = 0;
+		for (size_t i = 0; i != rtv_count; i++)
+		{
+			width = (std::max)(width, this->Width(i));
+			height = (std::max)(height, this->Height(i));
+		}
+
 		d3d_dsv_tex_ = MakeCOMPtr(Renderer::Instance().D3DCreateTexture2D(width, height,
 			DXGI_FORMAT_R24G8_TYPELESS, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE));
 
@@ -101,8 +98,8 @@ namespace zeta
 
 		//Bind Viewport
 		D3D11_VIEWPORT viewport;
-		viewport.Width = (float)width_;
-		viewport.Height = (float)height_;
+		viewport.Width = (float)this->Width(0);
+		viewport.Height = (float)this->Height(0);
 		viewport.MinDepth = 0.0f;
 		viewport.MaxDepth = 1.0f;
 		viewport.TopLeftX = 0.0f;
@@ -111,19 +108,19 @@ namespace zeta
 		Renderer::Instance().D3DContext()->RSSetViewports(1, &viewport);
 	}
 
-	DXGI_FORMAT FrameBuffer::Format()
+	DXGI_FORMAT FrameBuffer::Format(size_t index)
 	{
-		return rtv_fmt_;
+		return rtv_descs_[index].format;
 	}
 
-	uint32_t FrameBuffer::Width()
+	uint32_t FrameBuffer::Width(size_t index)
 	{
-		return width_;
+		return rtv_descs_[index].width;
 	}
 
-	uint32_t FrameBuffer::Height()
+	uint32_t FrameBuffer::Height(size_t index)
 	{
-		return height_;
+		return rtv_descs_[index].height;
 	}
 
 	ID3D11ShaderResourceView* FrameBuffer::RetriveRTShaderResourceView(size_t index)
@@ -131,7 +128,7 @@ namespace zeta
 		if (!rtvs_[index].d3d_srv_)
 		{
 			D3D11_SHADER_RESOURCE_VIEW_DESC d3d_srv_desc;
-			d3d_srv_desc.Format = rtv_fmt_;
+			d3d_srv_desc.Format = rtv_descs_[index].format;
 			d3d_srv_desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 			d3d_srv_desc.Texture2D.MostDetailedMip = 0;
 			d3d_srv_desc.Texture2D.MipLevels = 1;

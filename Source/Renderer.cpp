@@ -108,7 +108,7 @@ namespace zeta
 		return obj;
 	}
 
-	void Renderer::Create(HWND wnd, int width, int height)
+	void Renderer::Create(HWND wnd, uint32_t width, uint32_t height)
 	{
 		wnd_ = wnd;
 
@@ -169,15 +169,12 @@ namespace zeta
 		this->Resize(width, height);
 	}
 
-	void Renderer::Resize(int width, int height)
+	void Renderer::Resize(uint32_t width, uint32_t height)
 	{
 		if (!wnd_)
 		{
 			return;
 		}
-
-		width = width;
-		height = height;
 
 		d3d_imm_ctx_->OMSetRenderTargets(0, 0, 0);
 		d3d_imm_ctx_->OMSetDepthStencilState(0, 0);
@@ -228,37 +225,37 @@ namespace zeta
 		}
 
 		//Frame buffers
-		DXGI_FORMAT hdr_fmt = DXGI_FORMAT_R11G11B10_FLOAT;
-
+		FrameBuffer::VIEW_DESC vd = { width, height, DXGI_FORMAT_R8G8B8A8_UNORM, nullptr };
+		std::array<FrameBuffer::VIEW_DESC, 2> vds = { vd, vd };
 		gbuffer_fb_ = std::make_shared<FrameBuffer>();
-		gbuffer_fb_->Create(width, height, 2);
+		gbuffer_fb_->Create(vds.data(), 2);
 
-		linear_depth_fb_ = std::make_shared<FrameBuffer>(DXGI_FORMAT_R32_FLOAT);
-		linear_depth_fb_->Create(width, height, 1);
+		linear_depth_fb_ = std::make_shared<FrameBuffer>();
+		linear_depth_fb_->Create({ width, height, DXGI_FORMAT_R32_FLOAT, nullptr });
 
-		lighting_fb_ = std::make_shared<FrameBuffer>(hdr_fmt);
-		lighting_fb_->Create(width, height, 1);
+		lighting_fb_ = std::make_shared<FrameBuffer>();
+		lighting_fb_->Create({ width, height, DXGI_FORMAT_R11G11B10_FLOAT, nullptr });
 
-		shading_fb_ = std::make_shared<FrameBuffer>(hdr_fmt);
-		shading_fb_->Create(width, height, 1);
+		shading_fb_ = std::make_shared<FrameBuffer>();
+		shading_fb_->Create({ width, height, DXGI_FORMAT_R11G11B10_FLOAT, nullptr });
 
 		hdr_fb_ = std::make_shared<FrameBuffer>();
-		hdr_fb_->Create(width, height, 1);
+		hdr_fb_->Create({ width, height, DXGI_FORMAT_R11G11B10_FLOAT, nullptr });
 
 		fxaa_fb_ = std::make_shared<FrameBuffer>();
-		fxaa_fb_->Create(width, height, 1);
+		fxaa_fb_->Create({ width, height, DXGI_FORMAT_R11G11B10_FLOAT, nullptr });
 
 		ID3D11Texture2D* frame_buffer = nullptr;
 		THROW_FAILED(dxgi_sc->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&frame_buffer));
 
 		srgb_fb_ = std::make_shared<FrameBuffer>();
-		srgb_fb_->Create(width, height, frame_buffer);
+		srgb_fb_->Create({ width, height, DXGI_FORMAT_R8G8B8A8_UNORM, frame_buffer });
 
 		frame_buffer->Release();
 		frame_buffer = nullptr;
 
-		hdr_pp_->Initialize(width, height, hdr_fmt);
-		fxaa_pp_->Initialize(width, height, DXGI_FORMAT_R8G8B8A8_UNORM);
+		hdr_pp_->Initialize(width, height);
+		fxaa_pp_->Initialize(width, height);
 	}
 
 	ID3DX11Effect* Renderer::GetEffect(std::string file_path)

@@ -3,6 +3,7 @@
 #include "FrameBuffer.h"
 #include "Renderable.h"
 #include "Renderer.h"
+#include "DDSTextureLoader.h"
 
 
 namespace zeta
@@ -555,6 +556,38 @@ namespace zeta
 		SetEffectVar(fxaa_->Effect(), "g_inv_width_height", inv_width_height);
 
 		fxaa_->Apply();
+	}
+
+	ColorGradingPostProcess::ColorGradingPostProcess()
+	{
+		this->LoadFX("Shader/ColorGrading.fx", "ColorGrading", "ColorGrading");
+
+		ID3D11Resource* d3d_tex = nullptr;
+		ID3D11ShaderResourceView* d3d_srv = nullptr;
+		if (SUCCEEDED(
+			CreateDDSTextureFromFileEx(Renderer::Instance().D3DDevice(), nullptr, 
+				L"Texture/3D/color_grading.dds", 0,
+				D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0, false,
+				&d3d_tex, &d3d_srv))
+			)
+		{
+			d3d_tex_ = MakeCOMPtr(d3d_tex);
+			d3d_srv_ = MakeCOMPtr(d3d_srv);
+		}
+	}
+
+	ColorGradingPostProcess::~ColorGradingPostProcess()
+	{
+
+	}
+
+	void ColorGradingPostProcess::Apply()
+	{
+		SetEffectVar(effect_, "g_color_grading_tex", d3d_srv_.get());
+		SetEffectVar(effect_, "g_srgb_correction", true);
+		SetEffectVar(effect_, "g_color_grading", true);
+
+		OnePassPostProcess::Apply();
 	}
 
 }

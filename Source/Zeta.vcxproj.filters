@@ -115,9 +115,6 @@
     <FxCompile Include="Shader\DeferredRendering.fx">
       <Filter>Shader</Filter>
     </FxCompile>
-    <FxCompile Include="Shader\SRGBCorrection.fx">
-      <Filter>Shader</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\HDR.fx">
       <Filter>Shader</Filter>
     </FxCompile>
@@ -128,6 +125,9 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="Shader\Copy.fx">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\ColorGrading.fx">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>

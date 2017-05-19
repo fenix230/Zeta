@@ -58,4 +58,7 @@ namespace zeta
 
 	class FXAAPostProcess;
 	typedef std::shared_ptr<FXAAPostProcess> FXAAPostProcessPtr;
+
+	class ColorGradingPostProcess;
+	typedef std::shared_ptr<ColorGradingPostProcess> ColorGradingPostProcessPtr;
 }

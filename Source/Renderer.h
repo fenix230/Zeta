@@ -74,13 +74,13 @@ namespace zeta
 		FrameBufferPtr shading_fb_;
 		FrameBufferPtr hdr_fb_;
 		FrameBufferPtr fxaa_fb_;
-		FrameBufferPtr srgb_fb_;
+		FrameBufferPtr color_grading_fb_;
 
 		std::map<std::string, ID3DX11EffectPtr> effects_;
 
-		OnePassPostProcessPtr srgb_pp_;
 		HDRPostProcessPtr hdr_pp_;
 		FXAAPostProcessPtr fxaa_pp_;
+		ColorGradingPostProcessPtr color_grading_pp_;
 
 		QuadRenderablePtr quad_; 
 

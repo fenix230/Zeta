@@ -221,4 +221,19 @@ namespace zeta
 		FrameBufferPtr fb_;
 	};
 
+
+	class ColorGradingPostProcess
+		: public OnePassPostProcess
+	{
+	public:
+		ColorGradingPostProcess();
+		virtual ~ColorGradingPostProcess();
+
+		virtual void Apply() override;
+
+	private:
+		ID3D11ResourcePtr d3d_tex_;
+		ID3D11ShaderResourceViewPtr d3d_srv_;
+	};
+
 }

@@ -19,7 +19,9 @@ namespace zeta
 	CreateDXGIFactory1Func DynamicCreateDXGIFactory1_ = nullptr;
 	D3D11CreateDeviceFunc DynamicD3D11CreateDevice_ = nullptr;
 	pD3DCompile DynamicD3DCompile_ = nullptr;
-
+	HMODULE ModD3D11_ = nullptr;
+	HMODULE ModDXGI_ = nullptr;
+	HMODULE ModD3DCompiler_ = nullptr;
 
 	Renderer::Renderer()
 	{
@@ -31,33 +33,33 @@ namespace zeta
 		{
 			DynamicFuncInit_ = true;
 
-			mod_dxgi_ = ::LoadLibraryEx(TEXT("dxgi.dll"), nullptr, 0);
-			if (nullptr == mod_dxgi_)
+			ModDXGI_ = ::LoadLibraryEx(TEXT("dxgi.dll"), nullptr, 0);
+			if (nullptr == ModDXGI_)
 			{
 				::MessageBoxW(nullptr, L"Can't load dxgi.dll", L"Error", MB_OK);
 			}
-			mod_d3d11_ = ::LoadLibraryEx(TEXT("d3d11.dll"), nullptr, 0);
-			if (nullptr == mod_d3d11_)
+			ModD3D11_ = ::LoadLibraryEx(TEXT("d3d11.dll"), nullptr, 0);
+			if (nullptr == ModD3D11_)
 			{
 				::MessageBoxW(nullptr, L"Can't load d3d11.dll", L"Error", MB_OK);
 			}
-			mod_d3dcompiler_ = ::LoadLibraryEx(TEXT("d3dcompiler_47.dll"), nullptr, 0);
-			if (nullptr == mod_d3dcompiler_)
+			ModD3DCompiler_ = ::LoadLibraryEx(TEXT("d3dcompiler_47.dll"), nullptr, 0);
+			if (nullptr == ModD3DCompiler_)
 			{
 				::MessageBoxW(nullptr, L"Can't load d3dcompiler_47.dll", L"Error", MB_OK);
 			}
 
-			if (mod_dxgi_ != nullptr)
+			if (ModDXGI_ != nullptr)
 			{
-				DynamicCreateDXGIFactory1_ = reinterpret_cast<CreateDXGIFactory1Func>(::GetProcAddress(mod_dxgi_, "CreateDXGIFactory1"));
+				DynamicCreateDXGIFactory1_ = reinterpret_cast<CreateDXGIFactory1Func>(::GetProcAddress(ModDXGI_, "CreateDXGIFactory1"));
 			}
-			if (mod_d3d11_ != nullptr)
+			if (ModD3D11_ != nullptr)
 			{
-				DynamicD3D11CreateDevice_ = reinterpret_cast<D3D11CreateDeviceFunc>(::GetProcAddress(mod_d3d11_, "D3D11CreateDevice"));
+				DynamicD3D11CreateDevice_ = reinterpret_cast<D3D11CreateDeviceFunc>(::GetProcAddress(ModD3D11_, "D3D11CreateDevice"));
 			}
-			if (mod_d3dcompiler_ != nullptr)
+			if (ModD3DCompiler_ != nullptr)
 			{
-				DynamicD3DCompile_ = reinterpret_cast<pD3DCompile>(::GetProcAddress(mod_d3dcompiler_, "D3DCompile"));
+				DynamicD3DCompile_ = reinterpret_cast<pD3DCompile>(::GetProcAddress(ModD3DCompiler_, "D3DCompile"));
 			}
 		}
 	}
@@ -96,10 +98,6 @@ namespace zeta
 		gi_adapter_.reset();
 		gi_factory_1_.reset();
 		gi_factory_2_.reset();
-
-		::FreeLibrary(mod_d3dcompiler_);
-		::FreeLibrary(mod_d3d11_);
-		::FreeLibrary(mod_dxgi_);
 	}
 
 	Renderer& Renderer::Instance()

@@ -56,10 +56,6 @@ namespace zeta
 	private:
 		HWND wnd_;
 
-		HMODULE mod_d3d11_;
-		HMODULE mod_dxgi_;
-		HMODULE mod_d3dcompiler_;
-
 		IDXGIFactory1Ptr gi_factory_1_;
 		IDXGIFactory2Ptr gi_factory_2_;
 		IDXGIAdapterPtr gi_adapter_;

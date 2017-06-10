@@ -39,6 +39,8 @@ namespace zeta
 
 		WindowRotation Rotation() const;
 
+		void Renderer(DeferredRenderer* dr);
+
 	private:
 		static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 		static BOOL CALLBACK EnumMonProc(HMONITOR mon, HDC dc_mon, RECT* rc_mon, LPARAM lparam);
@@ -66,6 +68,8 @@ namespace zeta
 
 		HWND wnd_;
 		WNDPROC default_wnd_proc_;
+
+		DeferredRenderer* dr_;
 	};
 
 }

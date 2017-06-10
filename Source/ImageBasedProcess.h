@@ -43,6 +43,7 @@ namespace zeta
 		ID3DX11Effect* effect_;
 		ID3DX11EffectTechnique* tech_;
 		ID3DX11EffectPass* pass_;
+		QuadRenderablePtr quad_;
 	};
 
 

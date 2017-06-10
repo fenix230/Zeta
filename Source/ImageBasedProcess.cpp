@@ -2,8 +2,9 @@
 #include "ImageBasedProcess.h"
 #include "FrameBuffer.h"
 #include "Renderable.h"
-#include "Renderer.h"
+#include "APIContext.h"
 #include "DDSTextureLoader.h"
+#include "FrameStat.h"
 
 
 namespace zeta
@@ -53,7 +54,7 @@ namespace zeta
 
 	void OnePassPostProcess::LoadFX(std::string fx_file, std::string tech_name, std::string pass_name)
 	{
-		ID3DX11Effect* effect = Renderer::Instance().GetEffect(fx_file);
+		ID3DX11Effect* effect = APIContext::Instance().GetEffect(fx_file);
 		ID3DX11EffectTechnique* tech = effect->GetTechniqueByName(tech_name.c_str());
 		ID3DX11EffectPass* pass = tech->GetPassByName(pass_name.c_str());
 		this->FX(effect, tech, pass);
@@ -69,7 +70,11 @@ namespace zeta
 			SetEffectVar(effect_, input_pin_names_[i].c_str(), input_fbs_[i]->RetriveSRV(input_srv_indexs_[i]));
 		}
 
-		Renderer::Instance().Quad()->Render(effect_, pass_);
+		if (!quad_)
+		{
+			quad_ = std::make_shared<QuadRenderable>();
+		}
+		quad_->Render(effect_, pass_);
 	}
 
 	SumLumPostProcess::SumLumPostProcess()
@@ -142,7 +147,7 @@ namespace zeta
 		output_fb_ = adapted_texs_[!last_index_];
 
 		SetEffectVar(effect_, "g_last_lum_tex", adapted_texs_[last_index_]->RetriveRTShaderResourceView(0));
-		SetEffectVar(effect_, "g_frame_delta", (float)Renderer::Instance().FrameTime());
+		SetEffectVar(effect_, "g_frame_delta", (float)FrameStat::Instance().frame_time_);
 
 		last_index_ = !last_index_;
 
@@ -565,7 +570,7 @@ namespace zeta
 		ID3D11Resource* d3d_tex = nullptr;
 		ID3D11ShaderResourceView* d3d_srv = nullptr;
 		if (SUCCEEDED(
-			CreateDDSTextureFromFileEx(Renderer::Instance().D3DDevice(), nullptr, 
+			CreateDDSTextureFromFileEx(APIContext::Instance().D3DDevice(), nullptr, 
 				L"Texture/3D/color_grading.dds", 0,
 				D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0, false,
 				&d3d_tex, &d3d_srv))

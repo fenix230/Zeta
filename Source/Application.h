@@ -15,8 +15,11 @@ namespace zeta
 
 		void Run();
 
+		DeferredRenderer& Renderer();
+
 	private:
 		std::unique_ptr<Window> main_wnd_;
+		std::unique_ptr<DeferredRenderer> dr_;
 	};
 
 }

@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "Application.h"
-#include "Renderer.h"
+#include "DeferredRenderer.h"
 
 
 namespace zeta
@@ -18,7 +18,9 @@ namespace zeta
 	void Application::Create(const std::string& name, int width, int height)
 	{
 		main_wnd_ = std::make_unique<Window>(name, width, height);
-		Renderer::Instance().Create(main_wnd_->HWnd(), width, height);
+		dr_ = std::make_unique<DeferredRenderer>();
+		dr_->Create(main_wnd_->HWnd(), width, height);
+		main_wnd_->Renderer(dr_.get());
 	}
 
 	void Application::Run()
@@ -46,9 +48,14 @@ namespace zeta
 			}
 			else
 			{
-				Renderer::Instance().Frame();
+				dr_->Frame();
 			}
 		}
+	}
+
+	DeferredRenderer& Application::Renderer()
+	{
+		return *dr_;
 	}
 
 }

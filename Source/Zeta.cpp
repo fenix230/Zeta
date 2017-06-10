@@ -13,7 +13,7 @@
 #include "Renderable.h"
 #include "Camera.h"
 #include "Light.h"
-#include "Renderer.h"
+#include "DeferredRenderer.h"
 
 
 using namespace zeta;
@@ -82,7 +82,7 @@ void GenerateCube(StaticMeshRenderablePtr r)
 }
 
 
-void LoadAssimpStaticMesh(std::string file_path, float scale = 1, bool inverse_z = false, bool swap_yz = false)
+void LoadAssimpStaticMesh(Application& app, std::string file_path, float scale = 1, bool inverse_z = false, bool swap_yz = false)
 {
 	aiPropertyStore* props = aiCreatePropertyStore();
 	aiSetImportPropertyInteger(props, AI_CONFIG_IMPORT_TER_MAKE_UVS, 1);
@@ -216,7 +216,7 @@ void LoadAssimpStaticMesh(std::string file_path, float scale = 1, bool inverse_z
 		r->CreateVertexBuffer(num_vert, pos_data.data(), norm_data.data(), tc_data.data());
 		r->CreateIndexBuffer(indice_data.size(), indice_data.data());
 		r->CreateMtl(tex_path, ka, 0.2f, 0.2f);
-		Renderer::Instance().AddRenderable(r);
+		app.Renderer().AddRenderable(r);
 	}
 }
 
@@ -233,22 +233,22 @@ void LoadTestObj()
 	Vector3f eye(2, 2, 2), at(0, 0, 0), up(0, 1, 0);
 	cam->LookAt(eye, at, up);
 	cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
-	Renderer::Instance().SetCamera(cam);
+	app.Renderer().SetCamera(cam);
 
 	SkyBoxRenderablePtr skybox = std::make_shared<SkyBoxRenderable>();
 	skybox->CreateCubeMap("Texture/CubeMap/BlueSky.dds");
-	Renderer::Instance().SetSkyBox(skybox);
+	app.Renderer().SetSkyBox(skybox);
 
 	AmbientLightPtr al = std::make_shared<AmbientLight>();
 	al->color_ = Vector3f(0.1f, 0.1f, 0.1f);
-	Renderer::Instance().SetAmbientLight(al);
+	app.Renderer().SetAmbientLight(al);
 
 	DirectionLightPtr dl = std::make_shared<DirectionLight>();
 	dl->color_ = Vector3f(1, 1, 1);
 	dl->dir_ = Vector3f(cam->eye_pos_ - cam->look_at_);
-	Renderer::Instance().AddDirectionLight(dl);
+	app.Renderer().AddDirectionLight(dl);
 
-	LoadAssimpStaticMesh("Model/testObj/testObj.obj");
+	LoadAssimpStaticMesh(app, "Model/testObj/testObj.obj");
 
 	app.Run();
 }
@@ -266,22 +266,22 @@ void LoadSphere()
 	Vector3f eye(2, 2, 2), at(0, 0, 0), up(0, 1, 0);
 	cam->LookAt(eye, at, up);
 	cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
-	Renderer::Instance().SetCamera(cam);
+	app.Renderer().SetCamera(cam);
 
 	SkyBoxRenderablePtr skybox = std::make_shared<SkyBoxRenderable>();
 	skybox->CreateCubeMap("Texture/CubeMap/BlueSky.dds");
-	Renderer::Instance().SetSkyBox(skybox);
+	app.Renderer().SetSkyBox(skybox);
 
 	AmbientLightPtr al = std::make_shared<AmbientLight>();
 	al->color_ = Vector3f(0.1f, 0.1f, 0.1f);
-	Renderer::Instance().SetAmbientLight(al);
+	app.Renderer().SetAmbientLight(al);
 
 	DirectionLightPtr dl = std::make_shared<DirectionLight>();
 	dl->color_ = Vector3f(1, 1, 1);
 	dl->dir_ = Vector3f(0, 1, 0);
-	Renderer::Instance().AddDirectionLight(dl);
+	app.Renderer().AddDirectionLight(dl);
 
-	LoadAssimpStaticMesh("Model/Sphere/Sphere.obj");
+	LoadAssimpStaticMesh(app, "Model/Sphere/Sphere.obj");
 
 	app.Run();
 }
@@ -299,11 +299,11 @@ void LoadSponza()
 	Vector3f eye(-14.5f, 18, -3), at(-13.6f, 17.55f, -2.8f), up(0, 1, 0);
 	cam->LookAt(eye, at, up);
 	cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
-	Renderer::Instance().SetCamera(cam);
+	app.Renderer().SetCamera(cam);
 
 	AmbientLightPtr al = std::make_shared<AmbientLight>();
 	al->color_ = Vector3f(0.1f, 0.1f, 0.1f);
-	Renderer::Instance().SetAmbientLight(al);
+	app.Renderer().SetAmbientLight(al);
 
 	SpotLightPtr sl = std::make_shared<SpotLight>();
 	sl->pos_ = Vector3f(0, 12, -4.8f);
@@ -313,9 +313,9 @@ void LoadSponza()
 	sl->range_ = 100;
 	sl->inner_ang_ = XM_PI / 4;
 	sl->outter_ang_ = XM_PI / 6;
-	Renderer::Instance().AddSpotLight(sl);
+	app.Renderer().AddSpotLight(sl);
 
-	LoadAssimpStaticMesh("Model/Sponza/sponza.obj");
+	LoadAssimpStaticMesh(app, "Model/Sponza/sponza.obj");
 
 	app.Run();
 }

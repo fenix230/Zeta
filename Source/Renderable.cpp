@@ -1,8 +1,8 @@
 #include "stdafx.h"
 #include "Renderable.h"
-#include "Renderer.h"
 #include "DDSTextureLoader.h"
 #include "Camera.h"
+#include "APIContext.h"
 
 
 namespace zeta
@@ -35,7 +35,7 @@ namespace zeta
 		buffer_data.SysMemSlicePitch = 0;
 
 		ID3D11Buffer* d3d_buffer = nullptr;
-		THROW_FAILED(Renderer::Instance().D3DDevice()->CreateBuffer(&buffer_desc, &buffer_data, &d3d_buffer));
+		THROW_FAILED(APIContext::Instance().D3DDevice()->CreateBuffer(&buffer_desc, &buffer_data, &d3d_buffer));
 		d3d_vertex_buffer_ = MakeCOMPtr(d3d_buffer);
 	}
 
@@ -55,7 +55,7 @@ namespace zeta
 		buffer_data.SysMemSlicePitch = 0;
 
 		ID3D11Buffer* d3d_index_buffer = nullptr;
-		THROW_FAILED(Renderer::Instance().D3DDevice()->CreateBuffer(&buffer_desc, &buffer_data, &d3d_index_buffer));
+		THROW_FAILED(APIContext::Instance().D3DDevice()->CreateBuffer(&buffer_desc, &buffer_data, &d3d_index_buffer));
 		d3d_index_buffer_ = MakeCOMPtr(d3d_index_buffer);
 
 		num_indice_ = (UINT)num_indice;
@@ -71,7 +71,7 @@ namespace zeta
 			ID3D11ShaderResourceView* d3d_tex_srv = nullptr;
 
 			if (SUCCEEDED(
-				CreateDDSTextureFromFileEx(Renderer::Instance().D3DDevice(), nullptr, wfile_path.c_str(), 0,
+				CreateDDSTextureFromFileEx(APIContext::Instance().D3DDevice(), nullptr, wfile_path.c_str(), 0,
 				D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0, true,
 				&d3d_tex_res, &d3d_tex_srv))
 				)
@@ -107,7 +107,7 @@ namespace zeta
 		THROW_FAILED(pass->GetDesc(&pass_desc));
 
 		ID3D11InputLayout* d3d_input_layout = nullptr;
-		THROW_FAILED(Renderer::Instance().D3DDevice()->CreateInputLayout(d3d_elems_descs, (UINT)std::size(d3d_elems_descs),
+		THROW_FAILED(APIContext::Instance().D3DDevice()->CreateInputLayout(d3d_elems_descs, (UINT)std::size(d3d_elems_descs),
 			pass_desc.pIAInputSignature, pass_desc.IAInputSignatureSize, &d3d_input_layout));
 
 		d3d_input_layouts_.emplace_back(pass, MakeCOMPtr(d3d_input_layout));
@@ -170,16 +170,16 @@ namespace zeta
 			0
 		};
 
-		Renderer::Instance().D3DContext()->IASetVertexBuffers(0, 1, buffers.data(), strides.data(), offsets.data());
+		APIContext::Instance().D3DImmContext()->IASetVertexBuffers(0, 1, buffers.data(), strides.data(), offsets.data());
 
-		Renderer::Instance().D3DContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		Renderer::Instance().D3DContext()->IASetIndexBuffer(d3d_index_buffer_.get(), DXGI_FORMAT_R32_UINT, 0);
+		APIContext::Instance().D3DImmContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		APIContext::Instance().D3DImmContext()->IASetIndexBuffer(d3d_index_buffer_.get(), DXGI_FORMAT_R32_UINT, 0);
 
-		Renderer::Instance().D3DContext()->IASetInputLayout(this->D3DInputLayout(pass));
+		APIContext::Instance().D3DImmContext()->IASetInputLayout(this->D3DInputLayout(pass));
 
-		pass->Apply(0, Renderer::Instance().D3DContext());
+		pass->Apply(0, APIContext::Instance().D3DImmContext());
 
-		Renderer::Instance().D3DContext()->DrawIndexed(num_indice_, 0, 0);
+		APIContext::Instance().D3DImmContext()->DrawIndexed(num_indice_, 0, 0);
 	}
 
 	QuadRenderable::QuadRenderable()
@@ -209,15 +209,15 @@ namespace zeta
 			0
 		};
 
-		Renderer::Instance().D3DContext()->IASetVertexBuffers(0, 1, buffers.data(), strides.data(), offsets.data());
+		APIContext::Instance().D3DImmContext()->IASetVertexBuffers(0, 1, buffers.data(), strides.data(), offsets.data());
 
-		Renderer::Instance().D3DContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		APIContext::Instance().D3DImmContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-		Renderer::Instance().D3DContext()->IASetInputLayout(this->D3DInputLayout(pass));
+		APIContext::Instance().D3DImmContext()->IASetInputLayout(this->D3DInputLayout(pass));
 
-		pass->Apply(0, Renderer::Instance().D3DContext());
+		pass->Apply(0, APIContext::Instance().D3DImmContext());
 
-		Renderer::Instance().D3DContext()->Draw(4, 0);
+		APIContext::Instance().D3DImmContext()->Draw(4, 0);
 	}
 
 	void QuadRenderable::EnsureVertexBuffer()
@@ -246,7 +246,7 @@ namespace zeta
 			buffer_data.SysMemSlicePitch = 0;
 
 			ID3D11Buffer* d3d_buffer = nullptr;
-			THROW_FAILED(Renderer::Instance().D3DDevice()->CreateBuffer(&buffer_desc, &buffer_data, &d3d_buffer));
+			THROW_FAILED(APIContext::Instance().D3DDevice()->CreateBuffer(&buffer_desc, &buffer_data, &d3d_buffer));
 			d3d_vertex_buffer_ = MakeCOMPtr(d3d_buffer);
 		}
 	}
@@ -275,7 +275,7 @@ namespace zeta
 		THROW_FAILED(pass->GetDesc(&pass_desc));
 
 		ID3D11InputLayout* d3d_input_layout = nullptr;
-		THROW_FAILED(Renderer::Instance().D3DDevice()->CreateInputLayout(d3d_elems_descs, (UINT)std::size(d3d_elems_descs),
+		THROW_FAILED(APIContext::Instance().D3DDevice()->CreateInputLayout(d3d_elems_descs, (UINT)std::size(d3d_elems_descs),
 			pass_desc.pIAInputSignature, pass_desc.IAInputSignatureSize, &d3d_input_layout));
 
 		d3d_input_layouts_.emplace_back(pass, MakeCOMPtr(d3d_input_layout));
@@ -302,7 +302,7 @@ namespace zeta
 			ID3D11Resource* d3d_tex_res = nullptr;
 			ID3D11ShaderResourceView* d3d_tex_srv = nullptr;
 			if (SUCCEEDED(
-				CreateDDSTextureFromFileEx(Renderer::Instance().D3DDevice(), nullptr, wfile_path.c_str(), 0,
+				CreateDDSTextureFromFileEx(APIContext::Instance().D3DDevice(), nullptr, wfile_path.c_str(), 0,
 					D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0, true,
 					&d3d_tex_res, &d3d_tex_srv))
 				)
@@ -313,13 +313,18 @@ namespace zeta
 		}
 	}
 
+	void SkyBoxRenderable::SetCamera(CameraPtr cam)
+	{
+		cam_ = cam;
+	}
+
 	void SkyBoxRenderable::Render(ID3DX11Effect* effect, ID3DX11EffectPass* pass)
 	{
-		Matrix rot_view = Renderer::Instance().GetCamera()->view_;
+		Matrix rot_view = cam_->view_;
 		rot_view.At(3, 0) = 0;
 		rot_view.At(3, 1) = 0;
 		rot_view.At(3, 2) = 0;
-		Matrix proj = Renderer::Instance().GetCamera()->proj_;
+		Matrix proj = cam_->proj_;
 		Matrix inv_mvp = Inverse(rot_view * proj);
 
 		SetEffectVar(effect, "g_skybox_tex", d3d_srv_.get());

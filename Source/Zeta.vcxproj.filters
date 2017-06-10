@@ -22,6 +22,9 @@
     <Text Include="Shader\Blur.fx">
       <Filter>Shader</Filter>
     </Text>
+    <Text Include="Shader\GBuffer.fx">
+      <Filter>Shader</Filter>
+    </Text>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -40,9 +43,6 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="HeadersWIN32.h">
-      <Filter>Header</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="PredeclsZETA.h">
@@ -72,6 +72,15 @@
     <ClInclude Include="ImageBasedProcess.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="APIContext.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="DeferredRenderer.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="FrameStat.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -81,9 +90,6 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Window.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Utils.cpp">
@@ -110,11 +116,17 @@
     <ClCompile Include="ImageBasedProcess.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="APIContext.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="DeferredRenderer.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="FrameStat.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shader\DeferredRendering.fx">
-      <Filter>Shader</Filter>
-    </FxCompile>
     <FxCompile Include="Shader\HDR.fx">
       <Filter>Shader</Filter>
     </FxCompile>
@@ -128,6 +140,9 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="Shader\ColorGrading.fx">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\Lighting.fx">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>

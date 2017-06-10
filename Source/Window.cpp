@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "Window.h"
-#include "Renderer.h"
+#include "DeferredRenderer.h"
 #include "Utils.h"
 
 
@@ -145,6 +145,11 @@ namespace zeta
 		return win_rotation_;
 	}
 
+	void Window::Renderer(DeferredRenderer* dr)
+	{
+		dr_ = dr;
+	}
+
 	LRESULT Window::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 #pragma warning(push)
@@ -236,7 +241,7 @@ namespace zeta
 			{
 				active_ = true;
 				//this->OnSize()(*this, true);
-				Renderer::Instance().Resize(width_, height_);
+				dr_->Resize(width_, height_);
 			}
 		}
 		break;

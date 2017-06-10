@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "FrameBuffer.h"
-#include "Renderer.h"
+#include "APIContext.h"
 
 
 namespace zeta
@@ -37,11 +37,11 @@ namespace zeta
 			RTV& rtv = rtvs_[i];
 			if (desc.tex)
 			{
-				rtv.d3d_rtv_ = MakeCOMPtr(Renderer::Instance().D3DCreateRenderTargetView(desc.tex));
+				rtv.d3d_rtv_ = MakeCOMPtr(APIContext::Instance().D3DCreateRenderTargetView(desc.tex));
 			}
 			else
 			{
-				rtv.d3d_rtv_tex_ = MakeCOMPtr(Renderer::Instance().D3DCreateTexture2D(desc.width, desc.height, desc.format,
+				rtv.d3d_rtv_tex_ = MakeCOMPtr(APIContext::Instance().D3DCreateTexture2D(desc.width, desc.height, desc.format,
 					D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE));
 
 				D3D11_RENDER_TARGET_VIEW_DESC d3d_rtv_desc;
@@ -50,7 +50,7 @@ namespace zeta
 				d3d_rtv_desc.Texture2D.MipSlice = 0;
 
 				ID3D11RenderTargetView* d3d_rtv = nullptr;
-				THROW_FAILED(Renderer::Instance().D3DDevice()->CreateRenderTargetView(rtv.d3d_rtv_tex_.get(), &d3d_rtv_desc, &d3d_rtv));
+				THROW_FAILED(APIContext::Instance().D3DDevice()->CreateRenderTargetView(rtv.d3d_rtv_tex_.get(), &d3d_rtv_desc, &d3d_rtv));
 
 				rtv.d3d_rtv_ = MakeCOMPtr(d3d_rtv);
 			}
@@ -65,10 +65,10 @@ namespace zeta
 			height = (std::max)(height, this->Height(i));
 		}
 
-		d3d_dsv_tex_ = MakeCOMPtr(Renderer::Instance().D3DCreateTexture2D(width, height,
+		d3d_dsv_tex_ = MakeCOMPtr(APIContext::Instance().D3DCreateTexture2D(width, height,
 			DXGI_FORMAT_R24G8_TYPELESS, D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE));
 
-		d3d_dsv_ = MakeCOMPtr(Renderer::Instance().D3DCreateDepthStencilView(d3d_dsv_tex_.get(),
+		d3d_dsv_ = MakeCOMPtr(APIContext::Instance().D3DCreateDepthStencilView(d3d_dsv_tex_.get(),
 			DXGI_FORMAT_D24_UNORM_S8_UINT));
 	}
 
@@ -79,10 +79,10 @@ namespace zeta
 
 		for (size_t i = 0; i != rtvs_.size(); i++)
 		{
-			Renderer::Instance().D3DContext()->ClearRenderTargetView(rtvs_[i].d3d_rtv_.get(), pc);
+			APIContext::Instance().D3DImmContext()->ClearRenderTargetView(rtvs_[i].d3d_rtv_.get(), pc);
 		}
 
-		Renderer::Instance().D3DContext()->ClearDepthStencilView(d3d_dsv_.get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+		APIContext::Instance().D3DImmContext()->ClearDepthStencilView(d3d_dsv_.get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
 	void FrameBuffer::Bind()
@@ -94,7 +94,7 @@ namespace zeta
 			d3d_rtvs.push_back(rtvs_[i].d3d_rtv_.get());
 		}
 
-		Renderer::Instance().D3DContext()->OMSetRenderTargets((UINT)d3d_rtvs.size(), d3d_rtvs.data(), d3d_dsv_.get());
+		APIContext::Instance().D3DImmContext()->OMSetRenderTargets((UINT)d3d_rtvs.size(), d3d_rtvs.data(), d3d_dsv_.get());
 
 		//Bind Viewport
 		D3D11_VIEWPORT viewport;
@@ -105,7 +105,7 @@ namespace zeta
 		viewport.TopLeftX = 0.0f;
 		viewport.TopLeftY = 0.0f;
 
-		Renderer::Instance().D3DContext()->RSSetViewports(1, &viewport);
+		APIContext::Instance().D3DImmContext()->RSSetViewports(1, &viewport);
 	}
 
 	DXGI_FORMAT FrameBuffer::Format(size_t index)
@@ -134,7 +134,7 @@ namespace zeta
 			d3d_srv_desc.Texture2D.MipLevels = 1;
 
 			ID3D11ShaderResourceView* d3d_srv = nullptr;
-			THROW_FAILED(Renderer::Instance().D3DDevice()->CreateShaderResourceView(rtvs_[index].d3d_rtv_tex_.get(), &d3d_srv_desc, &d3d_srv));
+			THROW_FAILED(APIContext::Instance().D3DDevice()->CreateShaderResourceView(rtvs_[index].d3d_rtv_tex_.get(), &d3d_srv_desc, &d3d_srv));
 			rtvs_[index].d3d_srv_ = MakeCOMPtr(d3d_srv);
 		}
 
@@ -152,7 +152,7 @@ namespace zeta
 			d3d_srv_desc.Texture2D.MipLevels = 1;
 
 			ID3D11ShaderResourceView* d3d_srv = nullptr;
-			THROW_FAILED(Renderer::Instance().D3DDevice()->CreateShaderResourceView(d3d_dsv_tex_.get(), &d3d_srv_desc, &d3d_srv));
+			THROW_FAILED(APIContext::Instance().D3DDevice()->CreateShaderResourceView(d3d_dsv_tex_.get(), &d3d_srv_desc, &d3d_srv));
 			d3d_ds_srv_ = MakeCOMPtr(d3d_srv);
 		}
 		

@@ -1,10 +1,5 @@
 #include "stdafx.h"
-#include "Light.h"
-#include "Camera.h"
-#include "Renderer.h"
-#include "FrameBuffer.h"
-#include "Renderable.h"
-#include "ImageBasedProcess.h"
+#include "APIContext.h"
 
 
 namespace zeta
@@ -23,11 +18,9 @@ namespace zeta
 	HMODULE ModDXGI_ = nullptr;
 	HMODULE ModD3DCompiler_ = nullptr;
 
-	Renderer::Renderer()
+	APIContext::APIContext()
 	{
 		wnd_ = nullptr;
-		frame_time_ = 0;
-		frame_count_ = 0;
 
 		if (!DynamicFuncInit_)
 		{
@@ -64,30 +57,12 @@ namespace zeta
 		}
 	}
 
-	Renderer::~Renderer()
+	APIContext::~APIContext()
 	{
-		rs_.clear();
-		cam_.reset();
-
 		if (gi_swap_chain_1_)
 		{
 			gi_swap_chain_1_->SetFullscreenState(false, nullptr);
 		}
-
-		gbuffer_fb_.reset();
-		linear_depth_fb_.reset();
-		lighting_fb_.reset();
-		shading_fb_.reset();
-		color_grading_fb_.reset();
-		hdr_fb_.reset();
-		fxaa_fb_.reset();
-
-		quad_.reset();
-		skybox_.reset();
-
-		color_grading_pp_.reset();
-		hdr_pp_.reset();
-		fxaa_pp_.reset();
 
 		effects_.clear();
 
@@ -100,13 +75,13 @@ namespace zeta
 		gi_factory_2_.reset();
 	}
 
-	Renderer& Renderer::Instance()
+	APIContext& APIContext::Instance()
 	{
-		static Renderer obj;
+		static APIContext obj;
 		return obj;
 	}
 
-	void Renderer::Create(HWND wnd, uint32_t width, uint32_t height)
+	void APIContext::Create(HWND wnd)
 	{
 		wnd_ = wnd;
 
@@ -152,38 +127,15 @@ namespace zeta
 			&d3d_out_feature_level, &d3d_imm_ctx));
 		d3d_device_ = MakeCOMPtr(d3d_device);
 		d3d_imm_ctx_ = MakeCOMPtr(d3d_imm_ctx);
-
-		quad_ = std::make_shared<QuadRenderable>();
-
-		this->GetEffect("Shader/DeferredRendering.fx");
-
-		hdr_pp_ = std::make_shared<HDRPostProcess>();
-		fxaa_pp_ = std::make_shared<FXAAPostProcess>();
-		color_grading_pp_ = std::make_shared<ColorGradingPostProcess>();
-
-		this->Resize(width, height);
 	}
 
-	void Renderer::Resize(uint32_t width, uint32_t height)
+	void APIContext::ResizeSwapChain(uint32_t width, uint32_t height)
 	{
 		if (!wnd_)
 		{
 			return;
 		}
 
-		d3d_imm_ctx_->OMSetRenderTargets(0, 0, 0);
-		d3d_imm_ctx_->OMSetDepthStencilState(0, 0);
-
-		gbuffer_fb_.reset();
-		linear_depth_fb_.reset();
-		lighting_fb_.reset();
-		shading_fb_.reset();
-		hdr_fb_.reset();
-		fxaa_fb_.reset();
-		color_grading_fb_.reset();
-		color_grading_pp_->SetOutput(nullptr);
-
-		//SwapChain
 		IDXGISwapChain1* dxgi_sc = nullptr;
 		if (gi_swap_chain_1_)
 		{
@@ -218,42 +170,14 @@ namespace zeta
 			THROW_FAILED(gi_factory_2_->CreateSwapChainForHwnd(d3d_device_.get(), wnd_, &sc_desc1, &sc_fs_desc, nullptr, &dxgi_sc));
 			gi_swap_chain_1_ = MakeCOMPtr(dxgi_sc);
 		}
-
-		//Frame buffers
-		FrameBuffer::VIEW_DESC vd = { width, height, DXGI_FORMAT_R8G8B8A8_UNORM, nullptr };
-		std::array<FrameBuffer::VIEW_DESC, 2> vds = { vd, vd };
-		gbuffer_fb_ = std::make_shared<FrameBuffer>();
-		gbuffer_fb_->Create(vds.data(), 2);
-
-		linear_depth_fb_ = std::make_shared<FrameBuffer>();
-		linear_depth_fb_->Create({ width, height, DXGI_FORMAT_R32_FLOAT, nullptr });
-
-		lighting_fb_ = std::make_shared<FrameBuffer>();
-		lighting_fb_->Create({ width, height, DXGI_FORMAT_R11G11B10_FLOAT, nullptr });
-
-		shading_fb_ = std::make_shared<FrameBuffer>();
-		shading_fb_->Create({ width, height, DXGI_FORMAT_R11G11B10_FLOAT, nullptr });
-
-		hdr_fb_ = std::make_shared<FrameBuffer>();
-		hdr_fb_->Create({ width, height, DXGI_FORMAT_R11G11B10_FLOAT, nullptr });
-
-		fxaa_fb_ = std::make_shared<FrameBuffer>();
-		fxaa_fb_->Create({ width, height, DXGI_FORMAT_R11G11B10_FLOAT, nullptr });
-
-		ID3D11Texture2D* frame_buffer = nullptr;
-		THROW_FAILED(dxgi_sc->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&frame_buffer));
-
-		color_grading_fb_ = std::make_shared<FrameBuffer>();
-		color_grading_fb_->Create({ width, height, DXGI_FORMAT_R8G8B8A8_UNORM, frame_buffer });
-
-		frame_buffer->Release();
-		frame_buffer = nullptr;
-
-		hdr_pp_->Initialize(width, height);
-		fxaa_pp_->Initialize(width, height);
 	}
 
-	ID3DX11Effect* Renderer::GetEffect(std::string file_path)
+	HWND APIContext::Wnd()
+	{
+		return wnd_;
+	}
+
+	ID3DX11Effect* APIContext::GetEffect(std::string file_path)
 	{
 		auto pos = effects_.find(file_path);
 		if (pos != effects_.end())
@@ -285,182 +209,22 @@ namespace zeta
 		return d3d_effect;
 	}
 
-	void Renderer::SetCamera(CameraPtr cam)
-	{
-		cam_ = cam;
-	}
-
-	CameraPtr Renderer::GetCamera() const
-	{
-		return cam_;
-	}
-
-	void Renderer::SetSkyBox(SkyBoxRenderablePtr skybox)
-	{
-		skybox_ = skybox;
-	}
-
-	void Renderer::AddRenderable(RenderablePtr r)
-	{
-		rs_.push_back(r);
-	}
-
-	void Renderer::SetAmbientLight(AmbientLightPtr al)
-	{
-		ambient_light_ = al;
-	}
-
-	void Renderer::AddDirectionLight(DirectionLightPtr dl)
-	{
-		dir_lights_.push_back(dl);
-	}
-
-	void Renderer::AddSpotLight(SpotLightPtr sl)
-	{
-		spot_lights_.push_back(sl);
-	}
-
-	void Renderer::Frame()
-	{
-		ID3DX11Effect* dr_effect = this->GetEffect("Shader/DeferredRendering.fx");
-
-		ID3DX11EffectTechnique* tech = dr_effect->GetTechniqueByName("DeferredRendering");
-
-		//GBuffer pass
-		ID3DX11EffectPass* pass = tech->GetPassByName("GBuffer");
-
-		gbuffer_fb_->Clear();
-		gbuffer_fb_->Bind();
-
-		cam_->Bind(dr_effect);
-		for (auto i : rs_)
-		{
-			i->Render(dr_effect, pass);
-		}
-
-		//Linear depth pass
-		pass = tech->GetPassByName("LinearDepth");
-
-		linear_depth_fb_->Clear();
-		linear_depth_fb_->Bind();
-
-		float q = cam_->far_plane_ / (cam_->far_plane_ - cam_->near_plane_);
-		Vector4f near_q_far(cam_->near_plane_ * q, q, cam_->far_plane_, 1 / cam_->far_plane_);
-
-		SetEffectVar(dr_effect, "g_tex", gbuffer_fb_->RetriveDSShaderResourceView());
-		SetEffectVar(dr_effect, "g_near_q_far", near_q_far);
-
-		quad_->Render(dr_effect, pass);
-
-		//Lighting-kind passes
-		lighting_fb_->Clear();
-		lighting_fb_->Bind();
-
-		SetEffectVar(dr_effect, "g_buffer_tex", gbuffer_fb_->RetriveRTShaderResourceView(0));
-		SetEffectVar(dr_effect, "g_buffer_1_tex", gbuffer_fb_->RetriveRTShaderResourceView(1));
-
-		//Ambient lighting pass
-		pass = tech->GetPassByName("AmbientLighting");
-
-		ambient_light_->Bind(dr_effect, cam_.get());
-
-		quad_->Render(dr_effect, pass);
-
-		//Direction lighting pass for each
-		pass = tech->GetPassByName("DirectionLighting");
-
-		for (auto i : dir_lights_)
-		{
-			i->Bind(dr_effect, cam_.get());
-
-			quad_->Render(dr_effect, pass);
-		}
-
-		//Spot lighting pass for each
-		pass = tech->GetPassByName("SpotLighting");
-
-		SetEffectVar(dr_effect, "g_depth_tex", linear_depth_fb_->RetriveRTShaderResourceView(0));
-
-		for (auto i : spot_lights_)
-		{
-			i->Bind(dr_effect, cam_.get());
-
-			quad_->Render(dr_effect, pass);
-		}
-
-		//Copy depth pass
-		shading_fb_->Clear();
-		shading_fb_->Bind();
-
-		pass = tech->GetPassByName("CopyShadingDepth");
-
-		SetEffectVar(dr_effect, "g_shading_tex", lighting_fb_->RetriveRTShaderResourceView(0));
-		SetEffectVar(dr_effect, "g_depth_tex", gbuffer_fb_->RetriveDSShaderResourceView());
-
-		quad_->Render(dr_effect, pass);
-
-		//SkyBox pass
-		if (skybox_)
-		{
-			pass = tech->GetPassByName("SkyBoxShading");
-
-			skybox_->Render(dr_effect, pass);
-		}
-
-		//HDR post process
-		hdr_pp_->SetInputDefault(shading_fb_);
-		hdr_pp_->SetOutput(hdr_fb_);
-		hdr_pp_->Apply();
-
-		//FXAA post process
-		fxaa_pp_->SetInputDefault(hdr_fb_);
-		fxaa_pp_->SetOutput(fxaa_fb_);
-		fxaa_pp_->Apply();
-
-		//SRGBCorrection post process
-		color_grading_pp_->SetInputDefault(fxaa_fb_);
-		color_grading_pp_->SetOutput(color_grading_fb_);
-		color_grading_pp_->Apply();
-
-		//Present
-		gi_swap_chain_1_->Present(0, 0);
-
-		this->UpdateStat();
-	}
-
-	void Renderer::UpdateStat()
-	{
-		frame_time_ = timer_.Elapsed();
-		timer_.Restart();
-		frame_count_++;
-	}
-
-	double Renderer::FrameTime()
-	{
-		return frame_time_;
-	}
-
-	QuadRenderablePtr Renderer::Quad()
-	{
-		return quad_;
-	}
-
-	IDXGISwapChain1* Renderer::DXGISwapChain()
+	IDXGISwapChain1* APIContext::DXGISwapChain()
 	{
 		return gi_swap_chain_1_.get();
 	}
 
-	ID3D11Device* Renderer::D3DDevice()
+	ID3D11Device* APIContext::D3DDevice()
 	{
 		return d3d_device_.get();
 	}
 
-	ID3D11DeviceContext* Renderer::D3DContext()
+	ID3D11DeviceContext* APIContext::D3DImmContext()
 	{
 		return d3d_imm_ctx_.get();
 	}
 
-	HRESULT Renderer::D3DCompile(std::string const & src_data, const char* entry_point, const char* target,
+	HRESULT APIContext::D3DCompile(std::string const & src_data, const char* entry_point, const char* target,
 		std::vector<uint8_t>& code, std::string& error_msgs) const
 	{
 		ID3DBlob* code_blob = nullptr;
@@ -493,7 +257,7 @@ namespace zeta
 		return hr;
 	}
 
-	ID3D11Texture2D* Renderer::D3DCreateTexture2D(UINT width, UINT height, DXGI_FORMAT fmt, UINT bind_flags)
+	ID3D11Texture2D* APIContext::D3DCreateTexture2D(UINT width, UINT height, DXGI_FORMAT fmt, UINT bind_flags)
 	{
 		D3D11_TEXTURE2D_DESC d3d_tex_desc;
 		ZeroMemory(&d3d_tex_desc, sizeof(d3d_tex_desc));
@@ -515,7 +279,7 @@ namespace zeta
 		return d3d_tex;
 	}
 
-	ID3D11DepthStencilView* Renderer::D3DCreateDepthStencilView(ID3D11Texture2D* tex, DXGI_FORMAT fmt)
+	ID3D11DepthStencilView* APIContext::D3DCreateDepthStencilView(ID3D11Texture2D* tex, DXGI_FORMAT fmt)
 	{
 		D3D11_DEPTH_STENCIL_VIEW_DESC d3d_dsv_desc;
 		ZeroMemory(&d3d_dsv_desc, sizeof(d3d_dsv_desc));
@@ -529,7 +293,7 @@ namespace zeta
 		return d3d_dsv;
 	}
 
-	ID3D11RenderTargetView* Renderer::D3DCreateRenderTargetView(ID3D11Texture2D* tex)
+	ID3D11RenderTargetView* APIContext::D3DCreateRenderTargetView(ID3D11Texture2D* tex)
 	{
 		ID3D11RenderTargetView* d3d_rtv = nullptr;
 		THROW_FAILED(d3d_device_->CreateRenderTargetView(tex, NULL, &d3d_rtv));

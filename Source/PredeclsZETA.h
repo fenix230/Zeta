@@ -3,7 +3,7 @@
 
 namespace zeta
 {
-	class Renderer;
+	class DeferredRenderer;
 
 	class Camera;
 	typedef std::shared_ptr<Camera> CameraPtr;

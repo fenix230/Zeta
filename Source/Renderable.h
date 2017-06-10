@@ -89,12 +89,14 @@ namespace zeta
 		virtual ~SkyBoxRenderable();
 
 		void CreateCubeMap(std::string file_path);
+		void SetCamera(CameraPtr cam);
 
 		virtual void Render(ID3DX11Effect* effect, ID3DX11EffectPass* pass) override;
 
 	private:
 		ID3D11ResourcePtr d3d_tex_;
 		ID3D11ShaderResourceViewPtr d3d_srv_;
+		CameraPtr cam_;
 	};
 
 }

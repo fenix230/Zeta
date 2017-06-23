@@ -131,6 +131,8 @@ void LoadAssimpStaticMesh(Application& app, std::string file_path, float scale =
 		NULL,
 		props);
 
+	aiReleasePropertyStore(props);
+
 	if (!scene)
 	{
 		printf("%s\n", aiGetErrorString());
@@ -257,6 +259,9 @@ void LoadAssimpStaticMesh(Application& app, std::string file_path, float scale =
 			app.Renderer().AddRenderable(r);
 		}
 	}
+
+
+	aiReleaseImport(scene);
 }
 
 
@@ -395,6 +400,10 @@ void LoadSponza()
 
 int main()
 {
+#ifdef _DEBUG
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
 	try
 	{
 		//LoadTestObj();

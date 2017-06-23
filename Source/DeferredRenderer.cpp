@@ -156,8 +156,8 @@ namespace zeta
 		ID3DX11EffectTechnique* tech = effect->GetTechniqueByName("GBuffer");
 		ID3DX11EffectPass* pass = tech->GetPassByName("GBufferGen");
 
-		gbuffer_fb_->Clear();
 		gbuffer_fb_->Bind();
+		gbuffer_fb_->Clear();
 
 		cam_->Bind(effect);
 		for (auto i : rs_)
@@ -172,8 +172,8 @@ namespace zeta
 
 		cam_->Bind(effect);
 
-		linear_depth_fb_->Clear();
 		linear_depth_fb_->Bind();
+		linear_depth_fb_->Clear();
 
 		float q = cam_->far_plane_ / (cam_->far_plane_ - cam_->near_plane_);
 		Vector4f near_q_far(cam_->near_plane_ * q, q, cam_->far_plane_, 1 / cam_->far_plane_);
@@ -184,8 +184,8 @@ namespace zeta
 		quad_->Render(effect, pass);
 
 		//Lighting-kind passes
-		lighting_fb_->Clear();
 		lighting_fb_->Bind();
+		lighting_fb_->Clear();
 
 		SetEffectVar(effect, "g_buffer_tex", gbuffer_fb_->RetriveRTShaderResourceView(0));
 		SetEffectVar(effect, "g_buffer_1_tex", gbuffer_fb_->RetriveRTShaderResourceView(1));
@@ -220,8 +220,8 @@ namespace zeta
 		}
 
 		//Copy depth pass
-		shading_fb_->Clear();
 		shading_fb_->Bind();
+		shading_fb_->Clear();
 
 		pass = tech->GetPassByName("CopyShadingDepth");
 

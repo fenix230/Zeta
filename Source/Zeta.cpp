@@ -82,7 +82,22 @@ void GenerateCube(StaticMeshRenderablePtr r)
 }
 
 
-void LoadAssimpStaticMesh(Application& app, std::string file_path, float scale = 1, bool inverse_z = false, bool swap_yz = false)
+float RandFloat(float a, float b)
+{
+	static bool init_rand = false;
+	if (!init_rand)
+	{
+		std::srand((unsigned int)100);
+		init_rand = true;
+	}
+
+	float f = float(std::rand()) / RAND_MAX;
+
+	return a + f * (b - a);
+}
+
+
+void LoadAssimpStaticMesh(Application& app, std::string file_path, float scale = 1, bool inverse_z = false, bool swap_yz = false, bool random_mtl = false)
 {
 	aiPropertyStore* props = aiCreatePropertyStore();
 	aiSetImportPropertyInteger(props, AI_CONFIG_IMPORT_TER_MAKE_UVS, 1);
@@ -212,11 +227,35 @@ void LoadAssimpStaticMesh(Application& app, std::string file_path, float scale =
 			}
 		}
 
-		StaticMeshRenderablePtr r = std::make_shared<StaticMeshRenderable>();
-		r->CreateVertexBuffer(num_vert, pos_data.data(), norm_data.data(), tc_data.data());
-		r->CreateIndexBuffer(indice_data.size(), indice_data.data());
-		r->CreateMtl(tex_path, ka, 0.2f, 0.2f);
-		app.Renderer().AddRenderable(r);
+		if (indice_data.size() >= 3)
+		{
+			StaticMeshRenderablePtr r = std::make_shared<StaticMeshRenderable>();
+			r->CreateVertexBuffer(num_vert, pos_data.data(), norm_data.data(), tc_data.data());
+			r->CreateIndexBuffer(indice_data.size(), indice_data.data());
+			if (random_mtl)
+			{
+				static bool init_rand = false;
+				if (!init_rand)
+				{
+					std::srand((unsigned int)std::time(0));
+					init_rand = true;
+				}
+
+				ka.x = RandFloat(0.3f, 0.87f);
+				ka.y = RandFloat(0.3f, 0.87f);
+				ka.z = RandFloat(0.3f, 0.87f);
+
+				float m = RandFloat(0.2f, 0.9f);
+				float g = RandFloat(0.02f, 0.9f);
+
+				r->CreateMtl(tex_path, ka, 0.02f, 0.04f);
+			}
+			else
+			{
+				r->CreateMtl(tex_path, ka, 0.2f, 0.2f);
+			}
+			app.Renderer().AddRenderable(r);
+		}
 	}
 }
 
@@ -287,6 +326,39 @@ void LoadSphere()
 }
 
 
+void LoadTestScene()
+{
+	int width = 1280;
+	int height = 720;
+
+	Application app;
+	app.Create("TestScene", width, height);
+
+	CameraPtr cam = std::make_shared<Camera>();
+	Vector3f eye(80, 80, 80), at(0, 0, 0), up(0, 1, 0);
+	cam->LookAt(eye, at, up);
+	cam->Perspective(XM_PI / 4, (float)width / (float)height, 0.1f, 500);
+	app.Renderer().SetCamera(cam);
+
+	SkyBoxRenderablePtr skybox = std::make_shared<SkyBoxRenderable>();
+	skybox->CreateCubeMap("Texture/CubeMap/BlueSky.dds");
+	app.Renderer().SetSkyBox(skybox);
+
+	AmbientLightPtr al = std::make_shared<AmbientLight>();
+	al->color_ = Vector3f(0.1f, 0.1f, 0.1f);
+	app.Renderer().SetAmbientLight(al);
+
+	DirectionLightPtr dl = std::make_shared<DirectionLight>();
+	dl->color_ = Vector3f(1, 1, 1);
+	dl->dir_ = Vector3f(0.6f, 0.8f, 1);
+	app.Renderer().AddDirectionLight(dl);
+
+	LoadAssimpStaticMesh(app, "Model/TestScene/TestScene.obj", 1, false, false, true);
+
+	app.Run();
+}
+
+
 void LoadSponza()
 {
 	int width = 1280;
@@ -326,8 +398,9 @@ int main()
 	try
 	{
 		//LoadTestObj();
-		LoadSponza();
+		//LoadSponza();
 		//LoadSphere();
+		LoadTestScene();
 	}
 	catch (const std::exception& e)
 	{

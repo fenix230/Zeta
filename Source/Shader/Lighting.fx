@@ -47,7 +47,7 @@ DepthStencilState SkyBoxDSS
 {
 	DepthEnable = true;
 	DepthWriteMask = ALL;
-	DepthFunc = EQUAL;
+	DepthFunc = LESS_EQUAL;
 };
 
 

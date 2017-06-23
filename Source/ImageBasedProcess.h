@@ -8,6 +8,7 @@ namespace zeta
 	class ImageBasedProcess
 	{
 	public:
+		ImageBasedProcess();
 		virtual ~ImageBasedProcess() {}
 
 		virtual void Initialize(uint32_t width, uint32_t height) {}
@@ -19,6 +20,7 @@ namespace zeta
 		virtual void Apply() = 0;
 
 	protected:
+		bool input_assigned_;
 		std::vector<FrameBufferPtr> input_fbs_;
 		std::vector<std::string> input_pin_names_;
 		std::vector<int> input_srv_indexs_;

@@ -79,7 +79,8 @@ float4 AdaptedLumPS(SUMLUM_VSO ipt) : SV_Target
 	float adapted_lum = g_last_lum_tex.Sample(PointSamplerC, 0.5f.xx).r;
 	float current_lum = exp(g_tex.Sample(LinearSamplerC, 0.5f.xx).r);
 
-	return float4(CalcAdaptedLum(adapted_lum, current_lum), 0, 0, 0);
+	float lum = CalcAdaptedLum(adapted_lum, current_lum);
+	return float4(lum, 0, 0, 0);
 }
 
 

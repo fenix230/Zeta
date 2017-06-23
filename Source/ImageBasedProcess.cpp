@@ -9,11 +9,17 @@
 
 namespace zeta
 {
+	ImageBasedProcess::ImageBasedProcess()
+	{
+		input_assigned_ = false;
+	}
+
 	void ImageBasedProcess::SetInput(FrameBufferPtr fb, std::string pin_name, int srv_index)
 	{
 		input_fbs_.push_back(fb);
 		input_pin_names_.push_back(pin_name);
 		input_srv_indexs_.push_back(srv_index);
+		input_assigned_ = false;
 	}
 
 	void ImageBasedProcess::SetInputDefault(FrameBufferPtr fb)
@@ -62,12 +68,16 @@ namespace zeta
 
 	void OnePassPostProcess::Apply()
 	{
-		output_fb_->Clear();
 		output_fb_->Bind();
+		output_fb_->Clear();
 
-		for (size_t i = 0; i != input_fbs_.size(); i++)
+		if (!input_assigned_)
 		{
-			SetEffectVar(effect_, input_pin_names_[i].c_str(), input_fbs_[i]->RetriveSRV(input_srv_indexs_[i]));
+			for (size_t i = 0; i != input_fbs_.size(); i++)
+			{
+				SetEffectVar(effect_, input_pin_names_[i].c_str(), input_fbs_[i]->RetriveSRV(input_srv_indexs_[i]));
+			}
+			input_assigned_ = true;
 		}
 
 		if (!quad_)
@@ -89,7 +99,7 @@ namespace zeta
 
 	void SumLumPostProcess::Apply()
 	{
-		this->CalcSampleOffsets(output_fb_->Width(0), output_fb_->Height(0));
+		this->CalcSampleOffsets(input_fbs_[0]->Width(0), input_fbs_[0]->Height(0));
 
 		SetEffectVar(effect_, "g_sample_offset1", samples_offset1_);
 		SetEffectVar(effect_, "g_sample_offset2", samples_offset2_);
@@ -416,14 +426,16 @@ namespace zeta
 	void ImageStatPostProcess::Initialize(uint32_t width, uint32_t height)
 	{
 		fbs_.clear();
+		fbs_.resize(sum_lums_.size() + 1);
 
-		fbs_.push_back(std::make_shared<FrameBuffer>());
-		fbs_.back()->Create({ width, height, DXGI_FORMAT_R32_FLOAT, nullptr });
-
-		for (size_t i = 0; i < sum_lums_.size(); ++i)
+		uint32_t len = 1;
+		for (size_t i = 0; i < sum_lums_.size() + 1; ++i)
 		{
-			fbs_.push_back(std::make_shared<FrameBuffer>());
-			fbs_.back()->Create({ width, height, DXGI_FORMAT_R32_FLOAT, nullptr });
+			FrameBufferPtr fb = std::make_shared<FrameBuffer>();
+			fb->Create({ len, len, DXGI_FORMAT_R32_FLOAT, nullptr });
+
+			fbs_[sum_lums_.size() - i] = fb;
+			len *= 4;
 		}
 
 		adapted_lum_->Initialize(width, height);

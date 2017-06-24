@@ -287,7 +287,7 @@ void LoadTestObj()
 	al->color_ = Vector3f(0.1f, 0.1f, 0.1f);
 	app.Renderer().SetAmbientLight(al);
 
-	DirectionLightPtr dl = std::make_shared<DirectionLight>();
+	DirectionalLightPtr dl = std::make_shared<DirectionalLight>();
 	dl->color_ = Vector3f(1, 1, 1);
 	dl->dir_ = Vector3f(cam->eye_pos_ - cam->look_at_);
 	app.Renderer().AddDirectionLight(dl);
@@ -320,7 +320,7 @@ void LoadSphere()
 	al->color_ = Vector3f(0.1f, 0.1f, 0.1f);
 	app.Renderer().SetAmbientLight(al);
 
-	DirectionLightPtr dl = std::make_shared<DirectionLight>();
+	DirectionalLightPtr dl = std::make_shared<DirectionalLight>();
 	dl->color_ = Vector3f(1, 1, 1);
 	dl->dir_ = Vector3f(0, 1, 0);
 	app.Renderer().AddDirectionLight(dl);
@@ -346,14 +346,14 @@ void LoadTestScene()
 	app.Renderer().SetCamera(cam);
 
 	SkyBoxRenderablePtr skybox = std::make_shared<SkyBoxRenderable>();
-	skybox->CreateCubeMap("Texture/CubeMap/BlueSky.dds");
+	skybox->CreateCompressedCubeMap("Texture/CubeMap/Lake_CraterLake03_filtered_y.dds", "Texture/CubeMap/Lake_CraterLake03_filtered_c.dds");
 	app.Renderer().SetSkyBox(skybox);
 
 	AmbientLightPtr al = std::make_shared<AmbientLight>();
 	al->color_ = Vector3f(0.1f, 0.1f, 0.1f);
 	app.Renderer().SetAmbientLight(al);
 
-	DirectionLightPtr dl = std::make_shared<DirectionLight>();
+	DirectionalLightPtr dl = std::make_shared<DirectionalLight>();
 	dl->color_ = Vector3f(1, 1, 1);
 	dl->dir_ = Vector3f(0.6f, 0.8f, 1);
 	app.Renderer().AddDirectionLight(dl);

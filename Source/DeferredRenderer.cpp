@@ -134,19 +134,24 @@ namespace zeta
 		rs_.push_back(r);
 	}
 
-	void DeferredRenderer::SetAmbientLight(AmbientLightPtr al)
+	void DeferredRenderer::SetAmbientLight(AmbientLightPtr l)
 	{
-		ambient_light_ = al;
+		ambient_light_ = l;
 	}
 
-	void DeferredRenderer::AddDirectionLight(DirectionLightPtr dl)
+	void DeferredRenderer::SetSkyLight(SkylightPtr l)
 	{
-		dir_lights_.push_back(dl);
+		skylight_ = l;
 	}
 
-	void DeferredRenderer::AddSpotLight(SpotLightPtr sl)
+	void DeferredRenderer::AddDirectionLight(DirectionalLightPtr l)
 	{
-		spot_lights_.push_back(sl);
+		dir_lights_.push_back(l);
+	}
+
+	void DeferredRenderer::AddSpotLight(SpotLightPtr l)
+	{
+		spot_lights_.push_back(l);
 	}
 
 	void DeferredRenderer::Frame()
@@ -197,6 +202,9 @@ namespace zeta
 
 		quad_->Render(effect, pass);
 
+		//Skylight lighting pass
+
+
 		//Direction lighting pass for each
 		pass = tech->GetPassByName("DirectionLighting");
 
@@ -211,6 +219,8 @@ namespace zeta
 		pass = tech->GetPassByName("SpotLighting");
 
 		SetEffectVar(effect, "g_depth_tex", linear_depth_fb_->RetriveRTShaderResourceView(0));
+		Matrix inv_proj = Inverse(cam_->proj_);
+		SetEffectVar(effect, "g_inv_proj_mat", inv_proj);
 
 		for (auto i : spot_lights_)
 		{

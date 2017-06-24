@@ -9,7 +9,10 @@ Texture2D	g_buffer_1_tex;
 Texture2D	g_shading_tex;
 Texture2D	g_depth_tex;
 
-TextureCube	g_skybox_tex;
+bool		g_cube_tex_compressed;
+TextureCube	g_cube_tex;
+TextureCube	g_cube_tex_y;
+TextureCube	g_cube_tex_c;
 
 float3		g_light_pos_es;
 float3		g_light_dir_es;
@@ -24,15 +27,6 @@ float4		g_near_q_far;
 #define MAX_SHININESS 8192.0f
 
 #include "Utils.fx"
-
-
-SamplerState SkyBoxSampler
-{
-	Filter = MIN_MAG_LINEAR_MIP_POINT;
-	AddressU = Clamp;
-	AddressV = Clamp;
-	AddressW = Clamp;
-};
 
 
 DepthStencilState CopyDepthDSS
@@ -130,6 +124,27 @@ float4 AmbientLightingPS(LIGHTING_VSO ipt) : SV_Target
 
 	float n_dot_l = 0.5f + 0.5f * dot(g_light_dir_es.xyz, normal);
 	float4 shading = float4(max(c_diff * n_dot_l, 0) * g_light_color, 1);
+
+	return shading;
+}
+
+
+float4 SkylightLightingPS(LIGHTING_VSO ipt) : SV_Target
+{
+	float2 tc = ipt.tc;
+	float3 view_dir = ipt.view_dir;
+
+	float4 mrt_0 = g_buffer_tex.Sample(PointSamplerW, tc);
+	float4 mrt_1 = g_buffer_1_tex.Sample(PointSamplerW, tc);
+	view_dir = normalize(view_dir);
+	float3 normal = GetNormal(mrt_0);
+	float glossiness = GetGlossiness(mrt_0);
+	float shininess = Glossiness2Shininess(glossiness);
+	float3 c_diff = GetDiffuse(mrt_1);
+	float3 c_spec = GetSpecular(mrt_1);
+
+	float n_dot_l = 0.5f + 0.5f * dot(g_light_dir_es.xyz, normal);
+	float4 shading = SkylightShading(glossiness, c_diff, c_spec, normal, -view_dir);
 
 	return shading;
 }
@@ -271,7 +286,15 @@ SKYBOX_VSO SkyBoxShadingVS(float4 pos : POSITION)
 
 float4 SkyBoxShadingPS(SKYBOX_VSO ipt) : SV_Target
 {
-	return g_skybox_tex.Sample(SkyBoxSampler, ipt.tc);
+	if (g_cube_tex_compressed)
+	{
+		return DecodeHDR(g_cube_tex_y.Sample(CubeMapSamplerC, ipt.tc).r,
+			g_cube_tex_c.Sample(CubeMapSamplerC, ipt.tc));
+	}
+	else
+	{
+		return g_cube_tex.Sample(CubeMapSamplerC, ipt.tc);
+	}
 }
 
 

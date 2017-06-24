@@ -89,6 +89,7 @@ namespace zeta
 		virtual ~SkyBoxRenderable();
 
 		void CreateCubeMap(std::string file_path);
+		void CreateCompressedCubeMap(std::string file_path_y, std::string file_path_c);
 		void SetCamera(CameraPtr cam);
 
 		virtual void Render(ID3DX11Effect* effect, ID3DX11EffectPass* pass) override;
@@ -96,6 +97,15 @@ namespace zeta
 	private:
 		ID3D11ResourcePtr d3d_tex_;
 		ID3D11ShaderResourceViewPtr d3d_srv_;
+
+		ID3D11ResourcePtr d3d_tex_y_;
+		ID3D11ShaderResourceViewPtr d3d_srv_y_;
+
+		ID3D11ResourcePtr d3d_tex_c_;
+		ID3D11ShaderResourceViewPtr d3d_srv_c_;
+
+		bool compressed_;
+
 		CameraPtr cam_;
 	};
 

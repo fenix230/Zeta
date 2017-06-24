@@ -26,8 +26,11 @@ namespace zeta
 	class AmbientLight;
 	typedef std::shared_ptr<AmbientLight> AmbientLightPtr;
 
-	class DirectionLight;
-	typedef std::shared_ptr<DirectionLight> DirectionLightPtr;
+	class DirectionalLight;
+	typedef std::shared_ptr<DirectionalLight> DirectionalLightPtr;
+
+	class Skylight;
+	typedef std::shared_ptr<Skylight> SkylightPtr;
 
 	class SpotLight;
 	typedef std::shared_ptr<SpotLight> SpotLightPtr;

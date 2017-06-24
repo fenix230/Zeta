@@ -285,7 +285,7 @@ namespace zeta
 
 	SkyBoxRenderable::SkyBoxRenderable()
 	{
-
+		compressed_ = false;
 	}
 	
 	SkyBoxRenderable::~SkyBoxRenderable()
@@ -295,6 +295,8 @@ namespace zeta
 
 	void SkyBoxRenderable::CreateCubeMap(std::string file_path)
 	{
+		compressed_ = false;
+
 		if (!file_path.empty())
 		{
 			std::wstring wfile_path = ToW(file_path);
@@ -313,6 +315,45 @@ namespace zeta
 		}
 	}
 
+	void SkyBoxRenderable::CreateCompressedCubeMap(std::string file_path_y, std::string file_path_c)
+	{
+		compressed_ = true;
+
+		if (!file_path_y.empty())
+		{
+			std::wstring wfile_path = ToW(file_path_y);
+
+			ID3D11Resource* d3d_tex_res = nullptr;
+			ID3D11ShaderResourceView* d3d_tex_srv = nullptr;
+			if (SUCCEEDED(
+				CreateDDSTextureFromFileEx(APIContext::Instance().D3DDevice(), nullptr, wfile_path.c_str(), 0,
+					D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0, true,
+					&d3d_tex_res, &d3d_tex_srv))
+				)
+			{
+				d3d_tex_y_ = MakeCOMPtr(d3d_tex_res);
+				d3d_srv_y_ = MakeCOMPtr(d3d_tex_srv);
+			}
+		}
+
+		if (!file_path_c.empty())
+		{
+			std::wstring wfile_path = ToW(file_path_c);
+
+			ID3D11Resource* d3d_tex_res = nullptr;
+			ID3D11ShaderResourceView* d3d_tex_srv = nullptr;
+			if (SUCCEEDED(
+				CreateDDSTextureFromFileEx(APIContext::Instance().D3DDevice(), nullptr, wfile_path.c_str(), 0,
+					D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0, true,
+					&d3d_tex_res, &d3d_tex_srv))
+				)
+			{
+				d3d_tex_c_ = MakeCOMPtr(d3d_tex_res);
+				d3d_srv_c_ = MakeCOMPtr(d3d_tex_srv);
+			}
+		}
+	}
+
 	void SkyBoxRenderable::SetCamera(CameraPtr cam)
 	{
 		cam_ = cam;
@@ -327,8 +368,18 @@ namespace zeta
 		Matrix proj = cam_->proj_;
 		Matrix inv_mvp = Inverse(rot_view * proj);
 
-		SetEffectVar(effect, "g_skybox_tex", d3d_srv_.get());
 		SetEffectVar(effect, "g_inv_mvp_mat", inv_mvp);
+		SetEffectVar(effect, "g_cube_tex_compressed", compressed_);
+
+		if (compressed_)
+		{
+			SetEffectVar(effect, "g_cube_tex_y", d3d_srv_y_.get());
+			SetEffectVar(effect, "g_cube_tex_c", d3d_srv_c_.get());
+		}
+		else
+		{
+			SetEffectVar(effect, "g_cube_tex", d3d_srv_.get());
+		}
 
 		QuadRenderable::Render(effect, pass);
 	}

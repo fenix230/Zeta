@@ -40,6 +40,15 @@ SamplerState AnisoSamplerW
 };
 
 
+SamplerState CubeMapSamplerC
+{
+	Filter = MIN_MAG_LINEAR_MIP_POINT;
+	AddressU = Clamp;
+	AddressV = Clamp;
+	AddressW = Clamp;
+};
+
+
 RasterizerState BackSolidRS
 {
 	FillMode = Solid;
@@ -216,4 +225,14 @@ float3 SpecularTerm(float3 c_spec, float3 light_vec, float3 halfway_vec, float3 
 {
 	return SpecularNormalizeFactor(shininess) * DistributionTerm(halfway_vec, normal, shininess)
 		* FresnelTerm(light_vec, halfway_vec, c_spec);
+}
+
+
+float4 DecodeHDR(float y, float4 c)
+{
+	float Y = exp2(y * 65536 / 2048 - 16);
+	float2 C = c.rg;
+	C *= C;
+
+	return float4(Y * float3(C.g, (1.0f - C.g - C.r), C.r) / float3(0.2126f, 0.7152f, 0.0722f), 1);
 }

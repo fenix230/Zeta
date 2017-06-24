@@ -22,9 +22,10 @@ namespace zeta
 
 		void AddRenderable(RenderablePtr r);
 
-		void SetAmbientLight(AmbientLightPtr al);
-		void AddDirectionLight(DirectionLightPtr dl);
-		void AddSpotLight(SpotLightPtr sl);
+		void SetAmbientLight(AmbientLightPtr l);
+		void SetSkyLight(SkylightPtr l);
+		void AddDirectionLight(DirectionalLightPtr l);
+		void AddSpotLight(SpotLightPtr l);
 
 		void Frame();
 
@@ -50,7 +51,8 @@ namespace zeta
 		std::vector<RenderablePtr> rs_;
 
 		AmbientLightPtr ambient_light_;
-		std::vector<DirectionLightPtr> dir_lights_;
+		SkylightPtr skylight_;
+		std::vector<DirectionalLightPtr> dir_lights_;
 		std::vector<SpotLightPtr> spot_lights_;
 
 		Timer timer_;
